@@ -15,11 +15,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Frequency — Portfolio',
+  title: 'Frequency — VENUGOPALAM CHUKKA',
   description:
     'A portfolio built on the broadcast metaphor. Tune into projects, skills, and transmissions.',
   keywords: ['portfolio', 'developer', 'creative', 'frequency', 'broadcast'],
-  authors: [{ name: 'Frequency' }],
+  authors: [{ name: 'VENUGOPALAM CHUKKA' }],
 };
 
 export const viewport: Viewport = {

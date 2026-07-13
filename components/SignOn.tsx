@@ -20,9 +20,9 @@ export default function SignOn() {
         }}
       >
         <h1 className="name">
-          Alex
+          VENUGOPALAM
           <br />
-          Rivera
+          CHUKKA
         </h1>
         <p className="role">Full-Stack Engineer &amp; Creative Developer</p>
         <div

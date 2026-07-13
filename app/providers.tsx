@@ -73,11 +73,20 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     if (audioContextRef.current) return;
     const ctx = new AudioContext();
     audioContextRef.current = ctx;
+    console.log('[Audio] Context created, state:', ctx.state);
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+      console.log('[Audio] Context resumed, state:', ctx.state);
+    }
     setIsAudioReady(true);
   }, []);
 
   const toggleMute = useCallback(() => {
     initAudio();
+    if (audioContextRef.current?.state === 'suspended') {
+      audioContextRef.current.resume();
+      console.log('[Audio] Safety resume on toggle, state:', audioContextRef.current.state);
+    }
     setIsMuted((prev) => !prev);
   }, [initAudio]);
 
@@ -134,7 +143,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
       // Smoothly modulate gain in sync with signal strength
       // intensity is 1 at full static, 0 at clear signal
-      const targetGain = Math.min(intensity * 0.08, 0.08);
+      const targetGain = Math.min(intensity * 0.15, 0.15); // bumped for testing
       gainNode.gain.linearRampToValueAtTime(targetGain, ctx.currentTime + 0.08);
 
       // Modulate filter frequency: harsher at low signal, smoother at high signal
