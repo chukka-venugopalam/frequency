@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
-:root {
+/* ============================================
+   THEME: Dark (default)
+   ============================================ */
+:root,
+[data-theme="dark"] {
   --accent: hsl(174, 60%, 60%);
   --accent-dim: hsl(174, 30%, 40%);
   --accent-glow: rgba(94, 234, 212, 0.08);
@@ -10,6 +14,56 @@
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   --text-dim: #52525b;
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  --body-gradient: none;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --bg-subtle: rgba(255, 255, 255, 0.02);
+  --card-hover-border: rgba(94, 234, 212, 0.25);
+}
+
+/* ============================================
+   THEME: Light
+   Warm off-white base, teal accent dialed back
+   ============================================ */
+[data-theme="light"] {
+  --accent: hsl(174, 45%, 45%);
+  --accent-dim: hsl(174, 25%, 60%);
+  --accent-glow: rgba(94, 234, 212, 0.15);
+  --bg-base: #f8f6f2;
+  --bg-elevated: #f0ede8;
+  --bg-surface: #e8e4de;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b6b6b;
+  --text-dim: #a0a0a0;
+  --card-border: rgba(0, 0, 0, 0.06);
+  --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.3));
+  --body-gradient: none;
+  --border-subtle: rgba(60, 40, 20, 0.08);
+  --bg-subtle: rgba(0, 0, 0, 0.02);
+  --card-hover-border: rgba(94, 234, 212, 0.3);
+}
+
+/* ============================================
+   THEME: Mixed (duotone / aurora hybrid)
+   Warm-dark gradient base, teal accent glow
+   ============================================ */
+[data-theme="mixed"] {
+  --accent: hsl(174, 55%, 55%);
+  --accent-dim: hsl(174, 30%, 50%);
+  --accent-glow: rgba(94, 234, 212, 0.1);
+  --bg-base: #19192e;
+  --bg-elevated: #22223a;
+  --bg-surface: #2a2a45;
+  --text-primary: #f0ece4;
+  --text-secondary: #a09e96;
+  --text-dim: #6b6965;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-bg: linear-gradient(180deg, rgba(60, 50, 80, 0.15), rgba(10, 10, 30, 0.05));
+  --body-gradient: linear-gradient(180deg, #2d1b2e 0%, #19192e 40%, #19192e 100%);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --bg-subtle: rgba(255, 255, 255, 0.03);
+  --card-hover-border: rgba(94, 234, 212, 0.25);
 }
 
 @theme inline {
@@ -32,8 +86,6 @@ html {
 }
 
 body {
-  background: var(--bg-base);
-  color: var(--text-primary);
   font-family: var(--font-sans);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -158,14 +210,14 @@ body {
 .demo-container {
   border-radius: 12px;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   backdrop-filter: blur(10px);
   transition: border-color 0.5s ease, box-shadow 0.5s ease;
 }
 
 .demo-container:hover {
-  border-color: rgba(94, 234, 212, 0.25);
+  border-color: var(--card-hover-border);
   box-shadow: 0 10px 40px -15px var(--accent-glow);
 }
 
@@ -205,9 +257,9 @@ body {
   color: var(--text-secondary);
   text-decoration: none;
   padding: 0.6rem 1.2rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-subtle);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -246,11 +298,11 @@ body {
   background: var(--bg-base);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--border-subtle);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(94, 234, 212, 0.2);
+  background: var(--accent-glow);
 }
 
 /* ============================================

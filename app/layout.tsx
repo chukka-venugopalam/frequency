@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono, Playfair_Display } from 'next/font/google';
 import './globals.css';
+import { ThemeProvider } from '@/app/providers';
 import AmbientBackground from '@/components/AmbientBackground';
 import CursorGlow from '@/components/CursorGlow';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -48,16 +50,27 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable}`}
       suppressHydrationWarning
     >
-      <body className="bg-[var(--bg-base)] text-[var(--text-primary)] antialiased relative min-h-screen">
-        {/* Ambient Particle Field Background */}
-        <AmbientBackground />
-        
-        {/* Cursor Halo Glow */}
-        <CursorGlow />
+      <ThemeProvider>
+        <body
+          className="antialiased relative min-h-screen"
+          style={{
+            background: 'var(--body-gradient, var(--bg-base))',
+            color: 'var(--text-primary)',
+          }}
+        >
+          {/* Ambient Particle Field Background */}
+          <AmbientBackground />
 
-        {/* Core Portfolio Content */}
-        {children}
-      </body>
+          {/* Cursor Halo Glow */}
+          <CursorGlow />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* Core Portfolio Content */}
+          {children}
+        </body>
+      </ThemeProvider>
     </html>
   );
 }

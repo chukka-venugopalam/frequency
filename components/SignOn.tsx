@@ -4,6 +4,26 @@ import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useStationContext } from '@/app/providers';
 
+const heroVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const heroChildVariants = {
+  hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
+  },
+};
+
 export default function SignOn() {
   const { setActiveStationId } = useStationContext();
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -13,7 +33,6 @@ export default function SignOn() {
     offset: ['start start', 'end start'],
   });
 
-  // Map progress (0 = centered at start, 1 = scrolled completely out)
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
   const y = useTransform(scrollYProgress, [0, 0.8], [0, -100]);
   const blurValue = useTransform(scrollYProgress, [0, 0.8], [0, 16]);
@@ -36,33 +55,43 @@ export default function SignOn() {
           filter,
         }}
       >
-        <h1 className="name">
-          VENUGOPALAM
-          <br />
-          CHUKKA
-        </h1>
-        <p className="role">Creative Frontend Engineering &amp; Interactive Systems</p>
-        
         <motion.div
-          style={{
-            marginTop: '4rem',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.65rem',
-            color: 'var(--accent)',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase' as const,
-          }}
-          animate={{
-            y: [0, 6, 0],
-            opacity: [0.4, 0.8, 0.4]
-          }}
-          transition={{
-            duration: 3.5,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          variants={heroVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-20% 0px -20% 0px' }}
         >
-          Scroll to explore &darr;
+          <motion.h1 variants={heroChildVariants} className="name">
+            VENUGOPALAM
+            <br />
+            CHUKKA
+          </motion.h1>
+          <motion.p variants={heroChildVariants} className="role">
+            Creative Frontend Engineering &amp; Interactive Systems
+          </motion.p>
+
+          <motion.div
+            variants={heroChildVariants}
+            style={{
+              marginTop: '4rem',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.65rem',
+              color: 'var(--accent)',
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase' as const,
+            }}
+            animate={{
+              y: [0, 6, 0],
+              opacity: [0.4, 0.8, 0.4],
+            }}
+            transition={{
+              duration: 3.5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          >
+            Scroll to explore &darr;
+          </motion.div>
         </motion.div>
       </motion.div>
     </section>

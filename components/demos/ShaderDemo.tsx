@@ -102,7 +102,16 @@ export default function ShaderDemo() {
     >
       <Canvas
         orthographic
-        camera={{ position: [0, 0, 1], zoom: 1, near: 0.1, far: 10 }}
+        camera={{
+          position: [0, 0, 1],
+          zoom: 1,
+          near: 0.1,
+          far: 10,
+          left: -1,
+          right: 1,
+          top: 1,
+          bottom: -1,
+        }}
         gl={{ antialias: false, alpha: false }}
         style={{ width: '100%', height: '100%' }}
       >

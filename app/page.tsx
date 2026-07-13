@@ -7,6 +7,7 @@ import SignOn from '@/components/SignOn';
 import Station from '@/components/Station';
 import SkillsSignal from '@/components/SkillsSignal';
 import OffAir from '@/components/OffAir';
+import ScrollProgress from '@/components/ScrollProgress';
 
 /* ─── Root Page ─── */
 
@@ -24,6 +25,9 @@ export default function Home() {
           touchMultiplier: 1.5,
         }}
       >
+        {/* Scroll Progress Indicator */}
+        <ScrollProgress />
+
         {/* Skills Signal (ambient left sidebar) */}
         <SkillsSignal />
 
