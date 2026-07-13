@@ -5,26 +5,38 @@ import { motion } from 'framer-motion';
 import { useStationContext } from '@/app/providers';
 import { stations } from '@/lib/stations';
 
+// Mapping of project/scene IDs to relevant skills to highlight
+const stationSkillsMap: Record<string, string[]> = {
+  'about': [
+    'TypeScript', 'React', 'Next.js', 'Node.js', 'Three.js', 'WebGL', 'GLSL',
+    'Tailwind CSS', 'Framer Motion', 'PostgreSQL', 'Redis', 'Docker', 'AWS',
+    'GraphQL', 'Rust', 'Python'
+  ],
+  'demo-spring': ['Framer Motion', 'TypeScript', 'React'],
+  'demo-shaders': ['WebGL', 'GLSL', 'Three.js'],
+  'demo-micro': ['React', 'Framer Motion', 'TypeScript'],
+  'demo-kinetic': ['TypeScript', 'React'],
+  'demo-scroll': ['Framer Motion', 'Next.js', 'React'],
+  'demo-particles': ['TypeScript', 'React'],
+  'demo-3d': ['Three.js', 'WebGL', 'React'],
+};
+
 export default function SkillsSignal() {
   const { activeStationId } = useStationContext();
 
-  // Find the active station's skills
+  const aboutStation = stations.find((s) => s.type === 'about');
+  const allSkills = aboutStation?.skills ?? [];
+
   const activeSkills = useMemo(() => {
-    const activeStation = stations.find((s) => s.id === activeStationId);
-    return activeStation?.skills ?? [];
+    if (!activeStationId) return [];
+    return stationSkillsMap[activeStationId] ?? [];
   }, [activeStationId]);
-
-  // Default to about section skills if no active station
-  const displaySkills = activeSkills.length > 0 ? activeSkills
-    : stations.find((s) => s.type === 'about')?.skills ?? [];
-
-  if (displaySkills.length === 0) return null;
 
   return (
     <div
       style={{
         position: 'fixed',
-        left: '1.5rem',
+        left: '2.5rem',
         top: '50%',
         transform: 'translateY(-50%)',
         zIndex: 40,
@@ -32,32 +44,43 @@ export default function SkillsSignal() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
-        gap: '0.35rem',
-        maxWidth: '140px',
+        gap: '0.45rem',
+        maxWidth: '160px',
       }}
+      className="hidden md:flex"
     >
-      {displaySkills.map((skill, index) => (
-        <motion.span
-          key={skill}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 0.5, x: 0 }}
-          exit={{ opacity: 0, x: -10 }}
-          transition={{
-            delay: index * 0.03,
-            duration: 0.5,
-            ease: 'easeOut',
-          }}
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.6rem',
-            letterSpacing: '0.1em',
-            color: index % 3 === 0 ? 'var(--accent)' : 'var(--text-dim)',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          &rsaquo; {skill}
-        </motion.span>
-      ))}
+      {allSkills.map((skill) => {
+        const isHighlighted = activeSkills.includes(skill);
+
+        return (
+          <motion.span
+            key={skill}
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.6rem',
+              letterSpacing: '0.12em',
+              color: isHighlighted ? 'var(--accent)' : 'var(--text-dim)',
+              whiteSpace: 'nowrap',
+              textShadow: isHighlighted ? '0 0 10px rgba(94, 234, 212, 0.3)' : 'none',
+              transition: 'color 0.4s ease, text-shadow 0.4s ease',
+            }}
+            animate={{
+              opacity: isHighlighted ? [0.8, 1, 0.8] : 0.25,
+            }}
+            transition={
+              isHighlighted
+                ? {
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }
+                : { duration: 0.3 }
+            }
+          >
+            {isHighlighted ? '✦' : '◇'} {skill}
+          </motion.span>
+        );
+      })}
     </div>
   );
 }

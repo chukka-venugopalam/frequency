@@ -81,6 +81,13 @@ export const stations: StationData[] = [
     demoComponent: 'ParticlesDemo',
   },
   {
+    id: 'demo-3d',
+    name: '3D GEOMETRY / R3F',
+    subtitle: 'WebGL Geometry & Shaders',
+    type: 'project',
+    demoComponent: 'ThreeDDemo',
+  },
+  {
     id: 'contact',
     name: 'CONTACT',
     subtitle: 'Get in Touch',

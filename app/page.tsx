@@ -1,15 +1,105 @@
 'use client';
 
-import { ReactLenis } from 'lenis/react';
-import { StationProvider } from '@/app/providers';
+import { useCallback, useState } from 'react';
+import { ReactLenis, useLenis } from 'lenis/react';
+import { StationProvider, useStationContext } from '@/app/providers';
 import { stations } from '@/lib/stations';
 import SignOn from '@/components/SignOn';
 import Station from '@/components/Station';
 import SkillsSignal from '@/components/SkillsSignal';
 import OffAir from '@/components/OffAir';
-import ScrollProgress from '@/components/ScrollProgress';
+import { motion } from 'framer-motion';
 
-/* ─── Root Page ─── */
+function ScrollProgressTracker() {
+  const [progress, setProgress] = useState(0);
+
+  // Wire Lenis scroll progress to local state
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleScroll = useCallback((lenis: any) => {
+    setProgress(lenis.progress);
+  }, []);
+
+  useLenis(handleScroll);
+
+  return (
+    <motion.div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '2px',
+        background: 'var(--accent)',
+        scaleX: progress,
+        transformOrigin: 'left',
+        zIndex: 100,
+        opacity: progress > 0.01 ? 0.8 : 0,
+        boxShadow: '0 0 8px var(--accent)',
+      }}
+      transition={{ opacity: { duration: 0.3 } }}
+    />
+  );
+}
+
+function PortfolioContent() {
+  const { setActiveStationId } = useStationContext();
+
+  const projectStations = stations.filter((s) => s.type === 'project');
+  const aboutStation = stations.find((s) => s.type === 'about');
+
+  return (
+    <>
+      {/* Scroll indicator bar at the top */}
+      <ScrollProgressTracker />
+
+      {/* Floating Skills Nav in sidebar */}
+      <SkillsSignal />
+
+      {/* Main Content Layout */}
+      <div className="content-layer">
+        {/* Scene 1: Sign On Hero */}
+        <SignOn />
+
+        {/* Scene 2: About / Professional Context */}
+        {aboutStation && (
+          <section className="frequency-section" id="station-about">
+            <motion.div
+              onViewportEnter={() => setActiveStationId('about')}
+              className="skills-container"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, margin: '-35% 0px -35% 0px' }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2>The Craft</h2>
+              <p
+                style={{
+                  fontSize: '0.95rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.8,
+                  marginBottom: '2.5rem',
+                  fontWeight: 300,
+                }}
+              >
+                I am a full-stack engineer and creative developer based in Brooklyn, building
+                performant web experiences, interactive systems, and high-fidelity interfaces.
+                My focus lies in bridging the space between visual design and highly scalable frontend architecture.
+              </p>
+            </motion.div>
+          </section>
+        )}
+
+        {/* Scenes 3 - 9: Live Demos (including the new 3D/WebGL demo) */}
+        {projectStations.map((station) => (
+          <Station key={station.id} station={station} />
+        ))}
+
+        {/* Scene 10: Off Air / Contact */}
+        <OffAir />
+      </div>
+    </>
+  );
+}
 
 export default function Home() {
   return (
@@ -17,54 +107,15 @@ export default function Home() {
       <ReactLenis
         root
         options={{
-          duration: 1.4,
+          duration: 1.2,
           easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
           orientation: 'vertical',
           smoothWheel: true,
-          wheelMultiplier: 1,
+          wheelMultiplier: 1.0,
           touchMultiplier: 1.5,
         }}
       >
-        {/* Scroll Progress Indicator */}
-        <ScrollProgress />
-
-        {/* Skills Signal (ambient left sidebar) */}
-        <SkillsSignal />
-
-        {/* Main Content Sections */}
-        <div className="content-layer">
-          {/* Sign-On Landing */}
-          <SignOn />
-
-          {/* About / Skills Section */}
-          <section className="frequency-section" id="station-about">
-            <div className="skills-container">
-              <h2>About</h2>
-              <p
-                style={{
-                  fontSize: '0.9rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.7,
-                  marginBottom: '2.5rem',
-                }}
-              >
-                Full-stack engineer and creative developer. I build performant
-                web applications, interactive experiences, and developer tools
-                — always exploring the edge between code and craft.
-              </p>
-            </div>
-          </section>
-
-          {/* Project Stations */}
-          {stations
-            .filter((s) => s.type === 'project')
-            .map((station) => (
-              <Station key={station.id} station={station} />
-            ))}
-
-          {/* Off Air / Contact */}
-          <OffAir />
-        </div>
+        <PortfolioContent />
       </ReactLenis>
     </StationProvider>
   );

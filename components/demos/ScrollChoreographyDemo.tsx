@@ -29,9 +29,9 @@ export default function ScrollChoreographyDemo() {
       style={{
         width: '100%',
         height: 300,
-        border: '1px solid rgba(94, 234, 212, 0.06)',
-        borderRadius: 4,
-        background: 'rgba(0,0,0,0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        borderRadius: 12,
+        background: 'rgba(255, 255, 255, 0.01)',
         overflowY: 'auto',
         position: 'relative',
       }}
@@ -42,17 +42,18 @@ export default function ScrollChoreographyDemo() {
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          padding: '6px 12px',
+          padding: '8px 12px',
           fontFamily: 'var(--font-mono)',
-          fontSize: '0.5rem',
-          color: 'var(--accent-dim)',
+          fontSize: '0.55rem',
+          color: 'var(--accent)',
           letterSpacing: '0.15em',
-          background: 'rgba(3,3,3,0.8)',
-          borderBottom: '1px solid rgba(94, 234, 212, 0.06)',
+          background: 'rgba(3, 3, 3, 0.85)',
+          backdropFilter: 'blur(4px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
           textAlign: 'center' as const,
         }}
       >
-        SCROLL &darr; {Math.round(scrollProgress * 100)}%
+        SCROLL ↓ {Math.round(scrollProgress * 100)}%
       </div>
 
       {/* Choreography content */}
@@ -88,15 +89,15 @@ export default function ScrollChoreographyDemo() {
               style={{
                 width: 64,
                 height: 64,
-                background: `rgba(94, 234, 212, ${0.05 + localProgress * 0.12})`,
-                border: `1px solid rgba(94, 234, 212, ${0.1 + localProgress * 0.25})`,
-                borderRadius: 4,
+                background: `rgba(94, 234, 212, ${0.05 + localProgress * 0.15})`,
+                border: `1px solid rgba(94, 234, 212, ${0.15 + localProgress * 0.25})`,
+                borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontFamily: 'var(--font-mono)',
                 fontSize: '1.2rem',
-                color: localProgress > 0.5 ? 'var(--accent)' : 'var(--accent-dim)',
+                color: localProgress > 0.5 ? 'var(--accent)' : 'var(--text-secondary)',
                 opacity,
                 x: assembleX,
                 y: assembleY,
