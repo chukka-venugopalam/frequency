@@ -5,21 +5,22 @@
    ============================================ */
 :root,
 [data-theme="dark"] {
-  --accent: hsl(174, 60%, 60%);
-  --accent-dim: hsl(174, 30%, 40%);
-  --accent-glow: rgba(94, 234, 212, 0.08);
-  --bg-base: #030303;
-  --bg-elevated: #09090b;
-  --bg-surface: #18181b;
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-dim: #52525b;
+  --accent: hsl(43, 85%, 65%);
+  --accent-dim: hsl(43, 40%, 45%);
+  --accent-glow: rgba(234, 179, 8, 0.08);
+  --accent-secondary: hsl(268, 70%, 75%);
+  --bg-base: #050c08;
+  --bg-elevated: #08120c;
+  --bg-surface: #0b1c13;
+  --text-primary: #f4f6f4;
+  --text-secondary: #8e9c93;
+  --text-dim: #4d5c52;
   --card-border: rgba(255, 255, 255, 0.06);
   --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
   --body-gradient: none;
   --border-subtle: rgba(255, 255, 255, 0.08);
   --bg-subtle: rgba(255, 255, 255, 0.02);
-  --card-hover-border: rgba(94, 234, 212, 0.25);
+  --card-hover-border: rgba(234, 179, 8, 0.25);
 }
 
 /* ============================================
