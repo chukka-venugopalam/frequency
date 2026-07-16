@@ -1,9 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useMemo, useState, useEffect } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import SpringPhysicsSeedPod from './SpringPhysicsSeedPod';
 import DewLeafPlant from './DewLeafPlant';
 import PollenFirefliesPlant from './PollenFirefliesPlant';
 import BuddingSeedClusterPlant from './BuddingSeedClusterPlant';
@@ -14,9 +13,10 @@ interface MarkerProps {
   position: THREE.Vector3;
   targetT: number;
   scrollProgress: number;
+  onActiveChange?: (active: boolean) => void;
 }
 
-function PlaceholderMarker({ position, targetT, scrollProgress }: MarkerProps) {
+function PlaceholderMarker({ position, targetT, scrollProgress, onActiveChange }: MarkerProps) {
   const [isNear, setIsNear] = useState(false);
   const [prevScroll, setPrevScroll] = useState(0);
   const diff = Math.abs(scrollProgress - targetT);
@@ -35,6 +35,12 @@ function PlaceholderMarker({ position, targetT, scrollProgress }: MarkerProps) {
     }
   }
 
+  useEffect(() => {
+    if (onActiveChange) {
+      onActiveChange(isNear);
+    }
+  }, [isNear, onActiveChange]);
+
   return (
     <mesh position={position}>
       <sphereGeometry args={isNear ? [0.35, 32, 32] : [0.25, 16, 16]} />
@@ -49,11 +55,64 @@ function PlaceholderMarker({ position, targetT, scrollProgress }: MarkerProps) {
   );
 }
 
-interface DollyPathProps {
-  scrollRef: React.RefObject<number>;
+interface TrackerProps {
+  position: THREE.Vector3;
+  scrollProgress: number;
+  seedPodDOMRef: React.RefObject<HTMLDivElement | null>;
+  setScrollProgress: (p: number) => void;
 }
 
-export default function DollyPath({ scrollRef }: DollyPathProps) {
+function SeedPodTracker({
+  position,
+  scrollProgress,
+  seedPodDOMRef,
+  setScrollProgress,
+}: TrackerProps) {
+  const { camera } = useThree();
+  const tempV = new THREE.Vector3();
+
+  useFrame(() => {
+    // Sync the current scrollProgress to the outer state
+    setScrollProgress(scrollProgress);
+
+    if (!seedPodDOMRef.current) return;
+
+    // Project 3D position to 2D screen coords relative to current camera
+    tempV.copy(position);
+    tempV.project(camera);
+
+    const isBehind = tempV.z > 1;
+    const x = (tempV.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (tempV.y * -0.5 + 0.5) * window.innerHeight;
+
+    // Drei-style distance factor scaling
+    const dist = camera.position.distanceTo(position);
+    let fovFactor = 1;
+    if ('fov' in camera) {
+      fovFactor = Math.tan(((camera as THREE.PerspectiveCamera).fov * Math.PI) / 360) * 2;
+    }
+    const scale = 1 / (dist * fovFactor);
+
+    const element = seedPodDOMRef.current;
+    if (isBehind) {
+      element.style.display = 'none';
+    } else {
+      element.style.display = 'flex';
+      element.style.transform = `translate3d(calc(${x}px - 50%), calc(${y}px - 50%), 0) scale(${scale * 6})`;
+    }
+  });
+
+  return null;
+}
+
+interface DollyPathProps {
+  scrollRef: React.RefObject<number>;
+  seedPodDOMRef: React.RefObject<HTMLDivElement | null>;
+  setScrollProgress: (progress: number) => void;
+  onActivePlantChange: (index: number, active: boolean) => void;
+}
+
+export default function DollyPath({ scrollRef, seedPodDOMRef, setScrollProgress, onActivePlantChange }: DollyPathProps) {
   const [localScroll, setLocalScroll] = useState(0);
 
   // Define a 3D Catmull-Rom spline curve winding through space
@@ -72,14 +131,22 @@ export default function DollyPath({ scrollRef }: DollyPathProps) {
 
   // Compute 7 marker coordinates along the curve
   const markers = useMemo(() => {
-    const numMarkers = 7;
-    const items = [];
-    for (let i = 0; i < numMarkers; i++) {
-      const targetT = i / (numMarkers - 1);
-      const position = curve.getPointAt(targetT);
-      items.push({ position, targetT });
-    }
-    return items;
+    const targetTs = [0.12, 0.26, 0.40, 0.54, 0.68, 0.82, 0.96];
+    const offsets = [
+      new THREE.Vector3(1.6, -0.6, 0),    // Plant 0 (Spring Seed Pod)
+      new THREE.Vector3(-1.8, 0.5, 0),   // Plant 1 (Dew Leaf)
+      new THREE.Vector3(1.8, -0.5, 0),    // Plant 2 (Pollen Fireflies)
+      new THREE.Vector3(-1.8, 0.8, 0),   // Plant 3 (Budding Crystals)
+      new THREE.Vector3(1.8, -0.8, 0),    // Plant 4 (Growing Vine)
+      new THREE.Vector3(-1.8, 0.4, 0),   // Plant 5 (Dappled Stone)
+      new THREE.Vector3(0, -0.2, 0.5),   // Waypoint 6 (Waypoint Core)
+    ];
+
+    return targetTs.map((targetT, idx) => {
+      const splinePos = curve.getPointAt(targetT);
+      const position = splinePos.clone().add(offsets[idx]);
+      return { position, targetT };
+    });
   }, [curve]);
 
   useFrame((state) => {
@@ -127,11 +194,12 @@ export default function DollyPath({ scrollRef }: DollyPathProps) {
       {markers.map((marker, idx) => {
         if (idx === 0) {
           return (
-            <SpringPhysicsSeedPod
+            <SeedPodTracker
               key={idx}
-              position={[marker.position.x, marker.position.y, marker.position.z]}
-              targetT={marker.targetT}
+              position={marker.position}
               scrollProgress={localScroll}
+              seedPodDOMRef={seedPodDOMRef}
+              setScrollProgress={setScrollProgress}
             />
           );
         }
@@ -142,6 +210,7 @@ export default function DollyPath({ scrollRef }: DollyPathProps) {
               position={[marker.position.x, marker.position.y, marker.position.z]}
               targetT={marker.targetT}
               scrollProgress={localScroll}
+              onActiveChange={(active) => onActivePlantChange(idx, active)}
             />
           );
         }
@@ -152,6 +221,7 @@ export default function DollyPath({ scrollRef }: DollyPathProps) {
               position={[marker.position.x, marker.position.y, marker.position.z]}
               targetT={marker.targetT}
               scrollProgress={localScroll}
+              onActiveChange={(active) => onActivePlantChange(idx, active)}
             />
           );
         }
@@ -162,6 +232,7 @@ export default function DollyPath({ scrollRef }: DollyPathProps) {
               position={[marker.position.x, marker.position.y, marker.position.z]}
               targetT={marker.targetT}
               scrollProgress={localScroll}
+              onActiveChange={(active) => onActivePlantChange(idx, active)}
             />
           );
         }
@@ -172,6 +243,7 @@ export default function DollyPath({ scrollRef }: DollyPathProps) {
               position={[marker.position.x, marker.position.y, marker.position.z]}
               targetT={marker.targetT}
               scrollProgress={localScroll}
+              onActiveChange={(active) => onActivePlantChange(idx, active)}
             />
           );
         }
@@ -182,6 +254,7 @@ export default function DollyPath({ scrollRef }: DollyPathProps) {
               position={[marker.position.x, marker.position.y, marker.position.z]}
               targetT={marker.targetT}
               scrollProgress={localScroll}
+              onActiveChange={(active) => onActivePlantChange(idx, active)}
             />
           );
         }
@@ -191,6 +264,7 @@ export default function DollyPath({ scrollRef }: DollyPathProps) {
             position={marker.position}
             targetT={marker.targetT}
             scrollProgress={localScroll}
+            onActiveChange={(active) => onActivePlantChange(idx, active)}
           />
         );
       })}

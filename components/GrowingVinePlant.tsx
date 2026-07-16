@@ -1,130 +1,107 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Html } from '@react-three/drei';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// ─── Custom Growth Shader Material ───
-const VineShader = {
+/* ─── Procedural Growth Vine Shader ─── */
+const GrowthShader = {
   uniforms: {
+    uTime: { value: 0 },
     uGrowth: { value: 0 },
-    uColor: { value: new THREE.Color('#fbbf24') }, // Warm golden vine
   },
   vertexShader: `
     varying vec2 vUv;
+    varying float vY;
     void main() {
       vUv = uv;
+      vY = position.y;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
   fragmentShader: `
-    uniform float uGrowth;
-    uniform vec3 uColor;
+    precision highp float;
     varying vec2 vUv;
+    varying float vY;
+    uniform float uTime;
+    uniform float uGrowth;
+
     void main() {
-      if (vUv.x > uGrowth) {
+      // Discard pixels beyond the active growth frontier
+      // Normalise vY (ranges from -1.0 to 1.0) into 0.0 to 1.0
+      float progress = (vY + 1.0) * 0.5;
+      if (progress > uGrowth) {
         discard;
       }
-      // Soft organic tube shading
-      float intensity = 0.3 + 0.7 * sin(vUv.y * 3.14159);
-      gl_FragColor = vec4(uColor * intensity, 1.0);
+
+      // Organic stem gradient shifting from deep forest green to bright golden growth nodes
+      float gradient = smoothstep(uGrowth - 0.2, uGrowth, progress);
+      vec3 stemColor = mix(vec3(0.04, 0.22, 0.12), vec3(0.95, 0.73, 0.07), gradient);
+
+      // Add a subtle electric pulse propagating along the stem
+      float pulse = sin(vY * 8.0 - uTime * 3.0) * 0.5 + 0.5;
+      stemColor += vec3(0.95, 0.73, 0.07) * pulse * 0.12 * (1.0 - gradient);
+
+      gl_FragColor = vec4(stemColor, 1.0);
     }
   `,
 };
 
-function VineMesh({ isNear }: { isNear: boolean }) {
+export function VineMesh({ isNear }: { isNear: boolean }) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const growthRef = useRef(0);
 
-  // Define leaves along the vine
-  const leafNodes = useMemo(() => [
-    { t: 0.25, pos: new THREE.Vector3(), ref: { current: null as THREE.Mesh | null } },
-    { t: 0.50, pos: new THREE.Vector3(), ref: { current: null as THREE.Mesh | null } },
-    { t: 0.75, pos: new THREE.Vector3(), ref: { current: null as THREE.Mesh | null } },
-    { t: 0.95, pos: new THREE.Vector3(), ref: { current: null as THREE.Mesh | null } },
-  ], []);
+  // Define a procedural 3D spline shape winding upward
+  const vineCurve = useMemo(() => {
+    const points = [];
+    const numPoints = 8;
+    for (let i = 0; i < numPoints; i++) {
+      const angle = i * 1.5;
+      const radius = 0.25 * (1.0 - i / numPoints); // Tapers toward the top
+      points.push(
+        new THREE.Vector3(
+          Math.sin(angle) * radius,
+          (i / (numPoints - 1)) * 2.0 - 1.0, // Vertical span from -1 to 1
+          Math.cos(angle) * radius
+        )
+      );
+    }
+    return new THREE.CatmullRomCurve3(points);
+  }, []);
 
-  // Curve geometry
-  const { geometry } = useMemo(() => {
-    const points = [
-      new THREE.Vector3(0, -1.2, 0),
-      new THREE.Vector3(0.4, -0.6, 0.2),
-      new THREE.Vector3(-0.3, 0.0, -0.1),
-      new THREE.Vector3(0.5, 0.6, 0.3),
-      new THREE.Vector3(-0.2, 1.2, 0),
-    ];
-    const c = new THREE.CatmullRomCurve3(points);
-    const geom = new THREE.TubeGeometry(c, 64, 0.06, 8, false);
-
-    // Compute coordinates of leaf attachment points
-    leafNodes.forEach((node) => {
-      node.pos.copy(c.getPointAt(node.t));
-    });
-
-    return { geometry: geom };
-  }, [leafNodes]);
+  // Extrude the spline into a 3D tube geometry
+  const tubeGeom = useMemo(() => {
+    return new THREE.TubeGeometry(vineCurve, 64, 0.06, 8, false);
+  }, [vineCurve]);
 
   const uniforms = useMemo(() => ({
+    uTime: { value: 0 },
     uGrowth: { value: 0 },
-    uColor: { value: new THREE.Color('#fbbf24') },
   }), []);
 
-  useFrame((state, delta) => {
-    // Animate growth progress (1.5 seconds reveal)
-    const target = isNear ? 1.0 : 0.0;
-    const speed = 0.8 * delta; // Adjust speed based on frame delta
-    
-    if (growthRef.current < target) {
-      growthRef.current = Math.min(target, growthRef.current + speed);
-    } else if (growthRef.current > target) {
-      growthRef.current = Math.max(target, growthRef.current - speed * 1.5);
-    }
-
+  useFrame((state) => {
     if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+      
+      // Interpolate growth progress based on proximity (1.0 bloomed, 0.2 resting)
+      const targetGrowth = isNear ? 1.0 : 0.2;
+      growthRef.current = THREE.MathUtils.lerp(growthRef.current, targetGrowth, 0.04);
       materialRef.current.uniforms.uGrowth.value = growthRef.current;
     }
-
-    // Scale leaves based on local vine growth
-    leafNodes.forEach((node) => {
-      if (node.ref.current) {
-        const leafGrowth = Math.max(0, Math.min(1, (growthRef.current - node.t) * 8));
-        node.ref.current.scale.set(leafGrowth, leafGrowth, leafGrowth);
-      }
-    });
   });
 
   return (
-    <group>
-      {/* The Vine Tube */}
-      <mesh geometry={geometry}>
-        <shaderMaterial
-          ref={materialRef}
-          attach="material"
-          uniforms={uniforms}
-          vertexShader={VineShader.vertexShader}
-          fragmentShader={VineShader.fragmentShader}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Leaf Nodes */}
-      {leafNodes.map((node, index) => (
-        <mesh
-          key={index}
-          ref={node.ref as React.RefObject<THREE.Mesh>}
-          position={node.pos}
-        >
-          <sphereGeometry args={[0.15, 12, 12]} />
-          <meshStandardMaterial
-            color="#c084fc" // Secondary floral accent (lavender)
-            roughness={0.4}
-            metalness={0.1}
-          />
-        </mesh>
-      ))}
-    </group>
+    <mesh geometry={tubeGeom}>
+      <shaderMaterial
+        ref={materialRef}
+        attach="material"
+        uniforms={uniforms}
+        vertexShader={GrowthShader.vertexShader}
+        fragmentShader={GrowthShader.fragmentShader}
+      />
+    </mesh>
   );
 }
 
@@ -132,12 +109,15 @@ interface GrowingVineProps {
   position: [number, number, number];
   targetT: number;
   scrollProgress: number;
+  onActiveChange?: (active: boolean) => void;
 }
 
-export default function GrowingVinePlant({ position, targetT, scrollProgress }: GrowingVineProps) {
+export default function GrowingVinePlant({ position, targetT, scrollProgress, onActiveChange }: GrowingVineProps) {
   const [isNear, setIsNear] = useState(false);
   const [prevScroll, setPrevScroll] = useState(0);
   const diff = Math.abs(scrollProgress - targetT);
+
+  const groupRef = useRef<THREE.Group>(null);
 
   // Proximity hysteresis check
   if (scrollProgress !== prevScroll) {
@@ -153,113 +133,54 @@ export default function GrowingVinePlant({ position, targetT, scrollProgress }: 
     }
   }
 
-  return (
-    <Html
-      position={position}
-      center
-      distanceFactor={6}
-      style={{
-        pointerEvents: 'none',
-      }}
-    >
-      <div
-        style={{
-          width: 300,
-          height: 300,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          pointerEvents: 'none',
-        }}
-      >
-        {/* Vine Container */}
-        <motion.div
-          style={{
-            width: 100,
-            height: 100,
-            borderRadius: '15% 15% 85% 85% / 20% 20% 80% 80%', // Hanging pot shape
-            overflow: 'hidden',
-            background: 'rgba(5, 12, 8, 0.4)',
-            border: isNear
-              ? '1px solid hsl(268, 70%, 80%)'
-              : '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: isNear
-              ? '0 0 22px rgba(167, 139, 250, 0.25)'
-              : '0 0 8px rgba(0, 0, 0, 0.4)',
-            pointerEvents: 'auto',
-          }}
-          animate={
-            isNear
-              ? {
-                  scale: [1, 1.04, 1],
-                  rotate: [0, 1, -1, 0],
-                }
-              : { scale: 0.85 }
-          }
-          transition={
-            isNear
-              ? {
-                  scale: { duration: 6, repeat: Infinity, ease: 'easeInOut' },
-                  rotate: { duration: 8, repeat: Infinity, ease: 'easeInOut' },
-                  type: 'spring',
-                  stiffness: 100,
-                  damping: 15,
-                }
-              : { type: 'spring', stiffness: 95, damping: 20 }
-          }
-        >
-          <Canvas
-            camera={{ position: [0, 0, 3.2], fov: 50 }}
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'block',
-            }}
-          >
-            <ambientLight intensity={0.4} />
-            <pointLight position={[3, 3, 3]} intensity={1.5} color="#fbbf24" />
-            <VineMesh isNear={isNear} />
-          </Canvas>
-        </motion.div>
+  useEffect(() => {
+    if (onActiveChange) {
+      onActiveChange(isNear);
+    }
+  }, [isNear, onActiveChange]);
 
-        {/* Description Panel overlay */}
+  // Smooth lerp animations in frame loop
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const time = state.clock.elapsedTime;
+    const breatheScale = 1.0 + Math.sin(time * 0.4) * 0.02;
+    const breatheRotate = Math.sin(time * 0.3) * 0.015;
+
+    const targetScale = isNear ? 1.25 : 0.8;
+    const currentScale = groupRef.current.scale.x;
+    const nextScale = THREE.MathUtils.lerp(currentScale, targetScale * breatheScale, 0.08);
+    groupRef.current.scale.set(nextScale, nextScale, nextScale);
+
+    // Subtle sway
+    groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, breatheRotate, 0.05);
+  });
+
+  return (
+    <group ref={groupRef} position={position}>
+      {/* 3D Vine mesh */}
+      <VineMesh isNear={isNear} />
+
+      {/* Identifying label */}
+      <Html position={[0, -0.65, 0]} center distanceFactor={5} style={{ pointerEvents: 'none', userSelect: 'none' }}>
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={isNear ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={isNear ? { opacity: 1, y: 0 } : { opacity: 0.4, y: 0 }}
+          transition={{ duration: 0.4 }}
           style={{
-            position: 'absolute',
-            left: 190,
-            width: 220,
-            padding: '14px',
-            background: 'rgba(5, 12, 8, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '8px',
-            backdropFilter: 'blur(6px)',
-            fontFamily: 'sans-serif',
-            color: '#f4f6f4',
-            pointerEvents: isNear ? 'auto' : 'none',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-            textAlign: 'left',
+            fontFamily: 'monospace',
+            fontSize: '0.62rem',
+            color: isNear ? 'var(--accent)' : 'var(--text-dim)',
+            letterSpacing: '0.12em',
+            whiteSpace: 'nowrap',
+            background: 'rgba(5, 12, 8, 0.85)',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
           }}
         >
-          <h4
-            style={{
-              margin: '0 0 6px 0',
-              fontSize: '0.8rem',
-              color: 'var(--accent)',
-              fontFamily: 'monospace',
-              letterSpacing: '0.05em',
-            }}
-          >
-            PROCEDURAL VINE
-          </h4>
-          <p style={{ margin: 0, fontSize: '0.7rem', lineHeight: 1.4, color: '#8e9c93' }}>
-            Procedural vine path reveal utilizing shader geometry clipping. Extrudes a 3D tube spline while progressively scaling leaf nodes as the growth frontier advances. Ideal for interactive timelines and organic loading indicators.
-          </p>
+          ✦ Spline Growth Extrusion
         </motion.div>
-      </div>
-    </Html>
+      </Html>
+    </group>
   );
 }

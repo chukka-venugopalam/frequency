@@ -12,6 +12,7 @@ interface Particle {
   baseAlpha: number;
   phase: number;
   speed: number;
+  color: string; // RGB values "R, G, B" for particle color
 }
 
 export default function AmbientBackground() {
@@ -33,6 +34,10 @@ export default function AmbientBackground() {
       particles = [];
       for (let i = 0; i < particleCount; i++) {
         const baseAlpha = 0.08 + Math.random() * 0.12;
+        // 60% golden fireflies, 40% soft moss green spores
+        const isGold = Math.random() > 0.4;
+        const color = isGold ? '251, 191, 36' : '74, 222, 128';
+
         particles.push({
           x: Math.random() * width,
           y: Math.random() * height,
@@ -44,6 +49,7 @@ export default function AmbientBackground() {
           baseAlpha,
           phase: Math.random() * Math.PI * 2,
           speed: 0.0005 + Math.random() * 0.001,
+          color,
         });
       }
     };
@@ -101,10 +107,10 @@ export default function AmbientBackground() {
 
         // Draw soft glowing particle
         const glowGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
-        // Muted teal-like tones: rgba(94, 234, 212, p.alpha)
-        glowGrad.addColorStop(0, `rgba(94, 234, 212, ${p.alpha})`);
-        glowGrad.addColorStop(0.3, `rgba(94, 234, 212, ${p.alpha * 0.4})`);
-        glowGrad.addColorStop(1, 'rgba(94, 234, 212, 0)');
+        // Custom color values mapped to individual particle type
+        glowGrad.addColorStop(0, `rgba(${p.color}, ${p.alpha})`);
+        glowGrad.addColorStop(0.3, `rgba(${p.color}, ${p.alpha * 0.4})`);
+        glowGrad.addColorStop(1, `rgba(${p.color}, 0)`);
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
@@ -133,7 +139,7 @@ export default function AmbientBackground() {
         zIndex: 0,
         pointerEvents: 'none',
         overflow: 'hidden',
-        background: 'radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(20, 184, 166, 0.03) 0%, rgba(3, 3, 3, 0.05) 50%, transparent 100%)',
+        background: 'radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(251, 191, 36, 0.045) 0%, rgba(5, 12, 8, 0.5) 55%, transparent 100%)',
       }}
     >
       <canvas

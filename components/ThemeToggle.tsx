@@ -27,12 +27,14 @@ export default function ThemeToggle() {
       }}
     >
       {themes.map((t) => (
-        <button
+        <motion.button
           key={t.id}
           onClick={() => setTheme(t.id)}
           aria-label={`Switch to ${t.label} theme`}
           title={t.label}
           type="button"
+          whileHover={{ scale: 1.15, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+          whileTap={{ scale: 0.92 }}
           style={{
             border: 'none',
             background: theme === t.id ? 'var(--accent-glow)' : 'transparent',
@@ -50,7 +52,7 @@ export default function ThemeToggle() {
           }}
         >
           {t.icon}
-        </button>
+        </motion.button>
       ))}
     </motion.div>
   );
