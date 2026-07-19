@@ -4,6 +4,35 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useThemeContext } from '@/app/providers';
+
+// ─── Theme Configurations for Focus Viewports ───
+const themeCanvasColors = {
+  dark: {
+    ambient: '#0f291e',
+    lightA: '#fbbf24',
+    lightB: '#c084fc',
+    sphere: '#fbbf24',
+    pollen: '251, 191, 36',
+    pollenStroke: 'rgba(251, 191, 36, 0.12)',
+  },
+  light: {
+    ambient: '#ccd4cc', // sage green
+    lightA: '#10b981', // emerald
+    lightB: '#3b82f6', // blue
+    sphere: '#10b981',
+    pollen: '16, 185, 129',
+    pollenStroke: 'rgba(16, 185, 129, 0.12)',
+  },
+  mixed: {
+    ambient: '#161228', // twilight purple
+    lightA: '#a78bfa', // lavender
+    lightB: '#06b6d4', // cyan
+    sphere: '#a78bfa',
+    pollen: '167, 139, 250',
+    pollenStroke: 'rgba(167, 139, 250, 0.12)',
+  },
+};
 
 // Import exported subcomponents from original plant files
 import { InteractiveSeedPodMesh } from './SpringPhysicsSeedPod';
@@ -65,11 +94,13 @@ const focusDetails = [
 
 function SpringPhysicsFocus() {
   const [isDragging, setIsDragging] = useState(false);
+  const { theme } = useThemeContext();
+  const colors = themeCanvasColors[theme] || themeCanvasColors.dark;
   return (
     <Canvas camera={{ position: [0, 0, 3.5], fov: 50 }} style={{ width: '100%', height: '100%' }}>
-      <ambientLight intensity={0.7} color="#0f291e" />
-      <pointLight position={[5, 5, 5]} intensity={1.8} color="#fbbf24" />
-      <pointLight position={[-5, -5, 5]} intensity={0.9} color="#c084fc" />
+      <ambientLight intensity={0.7} color={colors.ambient} />
+      <pointLight position={[5, 5, 5]} intensity={1.8} color={colors.lightA} />
+      <pointLight position={[-5, -5, 5]} intensity={0.9} color={colors.lightB} />
       <InteractiveSeedPodMesh
         isNear={true}
         isDragging={isDragging}
@@ -83,11 +114,19 @@ function ShaderFocus() {
   return (
     <Canvas
       orthographic
-      camera={{ position: [0, 0, 1], zoom: 1, near: 0.1, far: 10 }}
+      camera={{
+        left: -1,
+        right: 1,
+        top: 1,
+        bottom: -1,
+        near: 0.1,
+        far: 10,
+        zoom: 1,
+      }}
       gl={{ antialias: false, alpha: false }}
       style={{ width: '100%', height: '100%' }}
     >
-      <ShaderQuad />
+      <ShaderQuad isFocus />
     </Canvas>
   );
 }
@@ -106,6 +145,8 @@ function PollenFocusCanvas() {
   const mouseRef = useRef({ x: -1000, y: -1000 });
   const particlesRef = useRef<FocusParticle[]>([]);
   const animRef = useRef<number>(0);
+  const { theme } = useThemeContext();
+  const colors = themeCanvasColors[theme] || themeCanvasColors.dark;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -179,12 +220,12 @@ function PollenFocusCanvas() {
 
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(251, 191, 36, ${pt.alpha})`;
+        ctx.fillStyle = `rgba(${colors.pollen}, ${pt.alpha})`;
         ctx.fill();
       });
 
       // Connections
-      ctx.strokeStyle = 'rgba(251, 191, 36, 0.12)';
+      ctx.strokeStyle = colors.pollenStroke;
       ctx.lineWidth = 0.55;
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
@@ -210,7 +251,7 @@ function PollenFocusCanvas() {
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, []);
+  }, [colors]);
 
   return (
     <canvas
@@ -226,23 +267,35 @@ function PollenFocusCanvas() {
 }
 
 function ClusterFocus() {
+  const { theme } = useThemeContext();
+  const colors = themeCanvasColors[theme] || themeCanvasColors.dark;
   return (
-    <Canvas camera={{ position: [0, 0, 3], fov: 60 }} style={{ width: '100%', height: '100%' }}>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[5, 5, 5]} intensity={1.5} color="#fbbf24" />
-      <pointLight position={[-5, -5, 5]} intensity={0.8} color="#c084fc" />
-      <CrystalSeed />
-      <DividingCapsule />
-      <OrbitingSpore />
+    <Canvas camera={{ position: [0, 0, 3.2], fov: 60 }} style={{ width: '100%', height: '100%' }}>
+      <ambientLight intensity={0.55} color={colors.ambient} />
+      <pointLight position={[5, 5, 5]} intensity={1.5} color={colors.lightA} />
+      <pointLight position={[-5, -5, 5]} intensity={0.8} color={colors.lightB} />
+      
+      {/* Triangular layout layout (fixes Bug 4) */}
+      <group position={[-0.5, 0.3, 0]}>
+        <CrystalSeed />
+      </group>
+      <group position={[0.5, 0.3, 0]}>
+        <DividingCapsule />
+      </group>
+      <group position={[0, -0.5, 0]}>
+        <OrbitingSpore />
+      </group>
     </Canvas>
   );
 }
 
 function VineFocus() {
+  const { theme } = useThemeContext();
+  const colors = themeCanvasColors[theme] || themeCanvasColors.dark;
   return (
     <Canvas camera={{ position: [0, 0, 3.2], fov: 50 }} style={{ width: '100%', height: '100%' }}>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[3, 3, 3]} intensity={1.8} color="#fbbf24" />
+      <ambientLight intensity={0.55} color={colors.ambient} />
+      <pointLight position={[3, 3, 3]} intensity={1.8} color={colors.lightA} />
       <VineMesh isNear={true} />
     </Canvas>
   );
@@ -258,6 +311,9 @@ function DappleFocus() {
 
 function FocusSphere() {
   const meshRef = useRef<THREE.Mesh>(null);
+  const { theme } = useThemeContext();
+  const colors = themeCanvasColors[theme] || themeCanvasColors.dark;
+
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.rotation.y = state.clock.elapsedTime * 0.4;
@@ -270,8 +326,8 @@ function FocusSphere() {
     <mesh ref={meshRef}>
       <sphereGeometry args={[0.9, 32, 32]} />
       <meshStandardMaterial
-        color="#fbbf24"
-        emissive="#fbbf24"
+        color={colors.sphere}
+        emissive={colors.sphere}
         emissiveIntensity={1.4}
         roughness={0.15}
         metalness={0.9}
@@ -281,10 +337,12 @@ function FocusSphere() {
 }
 
 function GlowFocus() {
+  const { theme } = useThemeContext();
+  const colors = themeCanvasColors[theme] || themeCanvasColors.dark;
   return (
     <Canvas camera={{ position: [0, 0, 2.2], fov: 50 }} style={{ width: '100%', height: '100%' }}>
-      <ambientLight intensity={0.6} color="#0f291e" />
-      <pointLight position={[3, 3, 3]} intensity={1.8} color="#fbbf24" />
+      <ambientLight intensity={0.6} color={colors.ambient} />
+      <pointLight position={[3, 3, 3]} intensity={1.8} color={colors.lightA} />
       <FocusSphere />
     </Canvas>
   );
@@ -351,9 +409,9 @@ export default function FocusCircleOverlay({ activePlant }: FocusCircleOverlayPr
                 height: 360,
                 borderRadius: '50%',
                 border: '2.5px solid var(--accent)',
-                boxShadow: '0 0 45px rgba(251, 191, 36, 0.25), inset 0 0 30px rgba(5, 12, 8, 0.9)',
+                boxShadow: '0 0 45px var(--accent-glow), inset 0 0 30px rgba(0, 0, 0, 0.5)',
                 overflow: 'hidden',
-                background: '#050c08',
+                background: 'var(--bg-base)',
                 pointerEvents: 'auto',
                 position: 'relative',
               }}

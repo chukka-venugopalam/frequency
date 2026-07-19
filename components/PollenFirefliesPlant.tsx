@@ -5,6 +5,26 @@ import { motion } from 'framer-motion';
 import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useThemeContext } from '@/app/providers';
+
+// ─── Theme Colors Configuration for Pollen Fireflies ───
+const pollenThemeColors = {
+  dark: {
+    bulb: '#0d3c26',       // dark green bulb
+    halo: '#fbbf24',       // gold halo glow
+    fireflies: '#fbbf24',  // gold particles
+  },
+  light: {
+    bulb: '#047857',       // emerald green bulb
+    halo: '#10b981',       // fresh green halo glow
+    fireflies: '#10b981',  // fresh green particles
+  },
+  mixed: {
+    bulb: '#311042',       // deep purple bulb
+    halo: '#a78bfa',       // lavender halo glow
+    fireflies: '#a78bfa',  // lavender particles
+  },
+};
 
 // Pure deterministic pseudo-random number generator to satisfy react-hooks/purity
 function seededRandom(seed: number) {
@@ -13,7 +33,7 @@ function seededRandom(seed: number) {
 }
 
 // ─── Native 3D Orbiting Firefly Particles ───
-function FireflyParticles() {
+function FireflyParticles({ color }: { color: string }) {
   const count = 35;
   const pointsRef = useRef<THREE.Points>(null);
 
@@ -69,7 +89,7 @@ function FireflyParticles() {
         />
       </bufferGeometry>
       <pointsMaterial
-        color="#fbbf24"
+        color={color}
         size={0.11}
         transparent
         opacity={0.85}
@@ -92,6 +112,8 @@ export default function PollenFirefliesPlant({ position, targetT, scrollProgress
   const diff = Math.abs(scrollProgress - targetT);
 
   const groupRef = useRef<THREE.Group>(null);
+  const { theme } = useThemeContext();
+  const colors = pollenThemeColors[theme] || pollenThemeColors.dark;
 
   // Proximity hysteresis check
   if (scrollProgress !== prevScroll) {
@@ -136,7 +158,7 @@ export default function PollenFirefliesPlant({ position, targetT, scrollProgress
       <mesh>
         <sphereGeometry args={[0.32, 32, 32]} />
         <meshStandardMaterial
-          color="#0d3c26"
+          color={colors.bulb}
           roughness={0.7}
           metalness={0.2}
           bumpScale={0.05}
@@ -147,7 +169,7 @@ export default function PollenFirefliesPlant({ position, targetT, scrollProgress
       <mesh scale={[1.15, 1.15, 1.15]}>
         <sphereGeometry args={[0.32, 16, 16]} />
         <meshStandardMaterial
-          color="#fbbf24"
+          color={colors.halo}
           transparent
           opacity={0.12}
           blending={THREE.AdditiveBlending}
@@ -155,7 +177,7 @@ export default function PollenFirefliesPlant({ position, targetT, scrollProgress
       </mesh>
 
       {/* Native 3D particles orbiting */}
-      <FireflyParticles />
+      <FireflyParticles color={colors.fireflies} />
 
       {/* Identifying label */}
       <Html position={[0, -0.65, 0]} center distanceFactor={5} style={{ pointerEvents: 'none', userSelect: 'none' }}>
@@ -169,10 +191,10 @@ export default function PollenFirefliesPlant({ position, targetT, scrollProgress
             color: isNear ? 'var(--accent)' : 'var(--text-dim)',
             letterSpacing: '0.12em',
             whiteSpace: 'nowrap',
-            background: 'rgba(5, 12, 8, 0.85)',
+            background: 'var(--bg-surface)',
             padding: '4px 8px',
             borderRadius: '4px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-subtle)',
           }}
         >
           ✦ Brownian Dust Particles

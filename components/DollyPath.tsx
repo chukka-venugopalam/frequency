@@ -20,17 +20,23 @@ function PlaceholderMarker({ position, targetT, scrollProgress, onActiveChange }
   const [isNear, setIsNear] = useState(false);
   const [prevScroll, setPrevScroll] = useState(0);
   const diff = Math.abs(scrollProgress - targetT);
+  const isLast = Math.abs(targetT - 0.96) < 0.01;
 
   // ESLint-safe hysteresis state synchronization during render
   if (scrollProgress !== prevScroll) {
     setPrevScroll(scrollProgress);
-    if (isNear) {
+    if (isLast && scrollProgress > 0.93) {
+      setIsNear(false);
+    } else if (isNear) {
       if (diff > 0.12) {
         setIsNear(false);
       }
     } else {
       if (diff < 0.08) {
-        setIsNear(true);
+        // Prevent activation if we are already in the outro zone
+        if (!(isLast && scrollProgress > 0.93)) {
+          setIsNear(true);
+        }
       }
     }
   }

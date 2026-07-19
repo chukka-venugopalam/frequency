@@ -4,6 +4,44 @@ import { useState, useRef, useEffect, Ref } from 'react';
 import { motion } from 'framer-motion';
 import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useThemeContext } from '@/app/providers';
+
+// ─── Theme Colors Configuration for Seed Pod ───
+const podColors = {
+  dark: {
+    active: '#c084fc',      // lavender active bloom
+    inactive: '#0a3d28',    // dark green sleep
+    activeEm: '#a78bfa',
+    inactiveEm: '#052216',
+    core: '#fbbf24',        // gold core
+    stem: '#4d5c52',
+    ambient: '#0f291e',
+    lightA: '#fbbf24',
+    lightB: '#c084fc',
+  },
+  light: {
+    active: '#059669',      // emerald active bloom
+    inactive: '#8da094',    // sage green sleep
+    activeEm: '#10b981',
+    inactiveEm: '#486050',
+    core: '#059669',        // emerald core
+    stem: '#8ba092',
+    ambient: '#ccd4cc',
+    lightA: '#10b981',
+    lightB: '#3b82f6',
+  },
+  mixed: {
+    active: '#a78bfa',      // twilight purple active bloom
+    inactive: '#1a1835',    // deep twilight purple sleep
+    activeEm: '#8b5cf6',
+    inactiveEm: '#0e0b24',
+    core: '#06b6d4',        // cyan core
+    stem: '#54526b',
+    ambient: '#161228',
+    lightA: '#a78bfa',
+    lightB: '#06b6d4',
+  },
+};
 
 interface SeedPodProps {
   domRef: React.RefObject<HTMLDivElement | null>;
@@ -12,22 +50,27 @@ interface SeedPodProps {
 }
 
 export default function SpringPhysicsSeedPod({ domRef, scrollProgress, onActiveChange }: SeedPodProps) {
-  const targetT = 0;
+  const targetT = 0.12; // Matches targetTs[0] in DollyPath
   const diff = Math.abs(scrollProgress - targetT);
 
   const [isNear, setIsNear] = useState(false);
   const [prevScroll, setPrevScroll] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const { theme } = useThemeContext();
+  const colors = podColors[theme] || podColors.dark;
 
-  // Proximity hysteresis logic
+  // Proximity hysteresis logic to prevent Intro overlaps
+  // Intro is active for scrollProgress < 0.06.
+  // Pod blooms when diff < 0.04 (scrollProgress >= 0.08 and <= 0.16)
+  // Pod exits bloom when diff > 0.06 (scrollProgress <= 0.06 or >= 0.18)
   if (scrollProgress !== prevScroll) {
     setPrevScroll(scrollProgress);
     if (isNear) {
-      if (diff > 0.12) {
+      if (diff > 0.06) {
         setIsNear(false);
       }
     } else {
-      if (diff < 0.08) {
+      if (diff < 0.04) {
         setIsNear(true);
       }
     }
@@ -61,20 +104,20 @@ export default function SpringPhysicsSeedPod({ domRef, scrollProgress, onActiveC
         style={{
           width: 130,
           height: 130,
-          borderRadius: '40% 40% 50% 50% / 55% 55% 45% 45%', // Bulb / Seed-pod geometry shell
+          borderRadius: '40% 40% 50% 50% / 55% 55% 45% 45%', // Bulb shell geometry
           overflow: 'hidden',
           background: 'rgba(5, 12, 8, 0.45)',
           border: isDragging
-            ? '2px solid var(--accent)' // Golden highlight on active drag
+            ? '2px solid var(--accent)' // Dynamic border based on theme variables
             : isNear
-            ? '1px solid hsl(268, 70%, 85%)'
+            ? '1px solid var(--accent)'
             : '1px solid rgba(255, 255, 255, 0.08)',
           boxShadow: isDragging
-            ? '0 0 25px var(--accent)' // Golden glow
+            ? '0 0 25px var(--accent-glow)'
             : isNear
-            ? '0 0 20px rgba(167, 139, 250, 0.35)' // Lavender glow
+            ? '0 0 20px var(--accent-glow)'
             : '0 0 8px rgba(0, 0, 0, 0.4)',
-          pointerEvents: 'auto', // Enable pointer actions on the interactive pod
+          pointerEvents: 'auto',
           cursor: isDragging ? 'grabbing' : 'grab',
         }}
         animate={
@@ -111,9 +154,9 @@ export default function SpringPhysicsSeedPod({ domRef, scrollProgress, onActiveC
             display: 'block',
           }}
         >
-          <ambientLight intensity={0.7} color="#0f291e" />
-          <pointLight position={[5, 5, 5]} intensity={1.8} color="#fbbf24" />
-          <pointLight position={[-5, -5, 5]} intensity={0.9} color="#c084fc" />
+          <ambientLight intensity={0.75} color={colors.ambient} />
+          <pointLight position={[5, 5, 5]} intensity={1.8} color={colors.lightA} />
+          <pointLight position={[-5, -5, 5]} intensity={0.9} color={colors.lightB} />
 
           <InteractiveSeedPodMesh
             isNear={isNear}
@@ -133,12 +176,12 @@ export default function SpringPhysicsSeedPod({ domRef, scrollProgress, onActiveC
           left: 190,
           width: 220,
           padding: '14px',
-          background: 'rgba(5, 12, 8, 0.95)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-subtle)',
           borderRadius: '8px',
           backdropFilter: 'blur(8px)',
           fontFamily: 'sans-serif',
-          color: '#f4f6f4',
+          color: 'var(--text-primary)',
           pointerEvents: isNear ? 'auto' : 'none',
           boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
           textAlign: 'left',
@@ -155,7 +198,7 @@ export default function SpringPhysicsSeedPod({ domRef, scrollProgress, onActiveC
         >
           SPRING PHYSICS
         </h4>
-        <p style={{ margin: 0, fontSize: '0.7rem', lineHeight: 1.4, color: '#8e9c93' }}>
+        <p style={{ margin: 0, fontSize: '0.7rem', lineHeight: 1.4, color: 'var(--text-secondary)' }}>
           Interactive force bulb using real-time spring physics. Simulates natural weight and momentum on drag release. Ideal for menus, responsive sliders, and tactile card gestures.
         </p>
       </motion.div>
@@ -167,7 +210,7 @@ export default function SpringPhysicsSeedPod({ domRef, scrollProgress, onActiveC
           bottom: 'calc(50% - 58px)',
           fontSize: '0.55rem',
           fontFamily: 'monospace',
-          color: isNear ? '#ffffff' : '#9ca3af',
+          color: isNear ? 'var(--text-primary)' : 'var(--text-dim)',
           opacity: 0.65,
           userSelect: 'none',
           pointerEvents: 'none',
@@ -191,6 +234,8 @@ export function InteractiveSeedPodMesh({ isNear, isDragging, setIsDragging }: In
   const { viewport, pointer } = useThree();
   const meshRef = useRef<THREE.Group>(null);
   const coreRef = useRef<THREE.Mesh>(null);
+  const { theme } = useThemeContext();
+  const colors = podColors[theme] || podColors.dark;
 
   // Position and Physics references
   const currentPos = useRef(new THREE.Vector3(0, 0, 0));
@@ -205,29 +250,20 @@ export function InteractiveSeedPodMesh({ isNear, isDragging, setIsDragging }: In
   useFrame((state, delta) => {
     if (!meshRef.current) return;
 
-    // Fling/drag movement or Euler spring integrations
     if (isDragging) {
-      // currentPos tracks mesh position; Euler calculations handle velocity damping on release
       meshRef.current.position.lerp(targetPos.current, 0.35);
       currentPos.current.copy(meshRef.current.position);
-      velocity.current.set(0, 0, 0); // Clear velocity while actively dragging
+      velocity.current.set(0, 0, 0);
     } else {
-      // Spring force vector: F = -k * x
       const displacement = new THREE.Vector3().copy(currentPos.current).negate();
       const springForce = displacement.multiplyScalar(stiffness);
-
-      // Damping force vector: F = -c * v
       const dampingForce = new THREE.Vector3().copy(velocity.current).multiplyScalar(-damping);
-
-      // Net force: F = springForce + dampingForce (with Mass m = 1.0)
       const acceleration = springForce.add(dampingForce);
 
-      // Euler integration
-      const dt = Math.min(delta, 0.03); // Cap delta to prevent physics explosions on lag spikes
+      const dt = Math.min(delta, 0.03);
       velocity.current.add(acceleration.multiplyScalar(dt));
       currentPos.current.add(new THREE.Vector3().copy(velocity.current).multiplyScalar(dt));
 
-      // Threshold check: snap seed pod to rest and halt oscillations
       const dist = currentPos.current.length();
       const velLength = velocity.current.length();
       if (dist < 0.001 && velLength < 0.001) {
@@ -238,69 +274,41 @@ export function InteractiveSeedPodMesh({ isNear, isDragging, setIsDragging }: In
       meshRef.current.position.copy(currentPos.current);
     }
 
-    // Subtle breathing / idle wobble when resting
-    if (isNear && !isDragging) {
-      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 1.5) * 0.15;
-      meshRef.current.rotation.z = Math.cos(state.clock.elapsedTime * 1.2) * 0.05;
-    } else {
-      meshRef.current.rotation.set(0, 0, 0);
-    }
-
-    // Animate inner core scale based on proximity
     if (coreRef.current) {
-      const targetScale = isNear ? (isDragging ? 1.4 : 1.0) : 0.0;
-      const currentScale = coreRef.current.scale.x;
-      const nextScale = THREE.MathUtils.lerp(currentScale, targetScale, 0.15);
-      coreRef.current.scale.set(nextScale, nextScale, nextScale);
+      coreRef.current.scale.setScalar(1.0 + Math.sin(state.clock.elapsedTime * 4.0) * 0.08);
     }
   });
 
-  const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    const target = e.target as HTMLElement;
-    if (target && typeof target.setPointerCapture === 'function') {
-      target.setPointerCapture(e.pointerId);
-    }
+  const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
     setIsDragging(true);
 
-    // Click intersection point projected on Z=0 plane relative to camera view
     const clickX = (pointer.x * viewport.width) / 2;
     const clickY = (pointer.y * viewport.height) / 2;
-    dragOffset.current.set(clickX - currentPos.current.x, clickY - currentPos.current.y, 0);
+    const clickedPosition = new THREE.Vector3(clickX, clickY, 0);
+
+    dragOffset.current.copy(clickedPosition).sub(currentPos.current);
   };
 
-  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
+  const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
     if (!isDragging) return;
-    e.stopPropagation();
+    event.stopPropagation();
 
-    // Map screen mouse position directly to Z=0 viewport space
-    const cursorX = (pointer.x * viewport.width) / 2;
-    const cursorY = (pointer.y * viewport.height) / 2;
-    const newTarget = new THREE.Vector3(cursorX - dragOffset.current.x, cursorY - dragOffset.current.y, 0);
+    const currentX = (pointer.x * viewport.width) / 2;
+    const currentY = (pointer.y * viewport.height) / 2;
+    const currentMouse = new THREE.Vector3(currentX, currentY, 0);
 
-    // Constrain drag to local radius range
-    const maxRadius = 1.3;
-    if (newTarget.length() > maxRadius) {
-      newTarget.normalize().multiplyScalar(maxRadius);
-    }
-
-    targetPos.current.copy(newTarget);
+    targetPos.current.copy(currentMouse).sub(dragOffset.current);
+    targetPos.current.clampLength(0, 1.4);
   };
 
-  const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
+  const handlePointerUp = () => {
     setIsDragging(false);
-    
-    const target = e.target as HTMLElement;
-    if (target && typeof target.releasePointerCapture === 'function') {
-      target.releasePointerCapture(e.pointerId);
-    }
   };
 
   return (
     <group>
-      {/* Elastic connector stem line stretching from origin to seed pod */}
-      <ConnectorLine currentPos={currentPos} />
+      <ConnectorLine currentPos={currentPos} stemColor={colors.stem} />
 
       <group
         ref={meshRef}
@@ -309,18 +317,17 @@ export function InteractiveSeedPodMesh({ isNear, isDragging, setIsDragging }: In
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        {/* Invisible expanded hit area mesh to make dragging easier */}
         <mesh visible={false}>
           <sphereGeometry args={[0.9, 16, 16]} />
         </mesh>
 
-        {/* Outer seed pod shell - Ellipsoid geometry */}
+        {/* Outer seed pod shell */}
         <mesh scale={[1.0, 1.35, 1.0]}>
           <sphereGeometry args={[0.42, 32, 32]} />
           <meshPhysicalMaterial
-            color={isNear ? '#c084fc' : '#4b5563'} // Lavender when active, grey sleep
-            emissive={isNear ? '#a78bfa' : '#1f2937'}
-            emissiveIntensity={isDragging ? 0.9 : isNear ? 0.35 : 0.05}
+            color={isNear ? colors.active : colors.inactive}
+            emissive={isNear ? colors.activeEm : colors.inactiveEm}
+            emissiveIntensity={isDragging ? 1.0 : isNear ? 0.45 : 0.05}
             roughness={0.15}
             metalness={0.1}
             transparent
@@ -334,7 +341,7 @@ export function InteractiveSeedPodMesh({ isNear, isDragging, setIsDragging }: In
         <mesh position={[0, 0.55, 0]}>
           <coneGeometry args={[0.07, 0.22, 16]} />
           <meshStandardMaterial
-            color={isNear ? '#c084fc' : '#4b5563'}
+            color={isNear ? colors.active : colors.inactive}
             roughness={0.2}
             metalness={0.1}
           />
@@ -343,7 +350,7 @@ export function InteractiveSeedPodMesh({ isNear, isDragging, setIsDragging }: In
         {/* Glowing inner core */}
         <mesh ref={coreRef}>
           <sphereGeometry args={[0.18, 16, 16]} />
-          <meshBasicMaterial color="#fbbf24" />
+          <meshBasicMaterial color={colors.core} />
         </mesh>
       </group>
     </group>
@@ -353,15 +360,15 @@ export function InteractiveSeedPodMesh({ isNear, isDragging, setIsDragging }: In
 // ─── Elastic bezier stem connector line ───
 export interface ConnectorLineProps {
   currentPos: React.RefObject<THREE.Vector3>;
+  stemColor: string;
 }
 
-export function ConnectorLine({ currentPos }: ConnectorLineProps) {
+export function ConnectorLine({ currentPos, stemColor }: ConnectorLineProps) {
   const lineRef = useRef<THREE.Line>(null);
 
   useFrame(() => {
     if (!lineRef.current || !currentPos.current) return;
 
-    // Anchor at bottom center, curve up towards seed pod position
     const anchor = new THREE.Vector3(0, -1.6, 0);
     const control = new THREE.Vector3(0, -0.8, 0);
     const end = currentPos.current;
@@ -375,7 +382,7 @@ export function ConnectorLine({ currentPos }: ConnectorLineProps) {
   return (
     <line ref={lineRef as unknown as Ref<SVGLineElement>}>
       <bufferGeometry />
-      <lineBasicMaterial color="#4d5c52" opacity={0.55} transparent />
+      <lineBasicMaterial color={stemColor} opacity={0.55} transparent />
     </line>
   );
 }

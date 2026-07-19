@@ -5,12 +5,34 @@ import { motion } from 'framer-motion';
 import { Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useThemeContext } from '@/app/providers';
+
+// ─── Theme Colors Configuration for Dew/Water Pool ───
+export const waterColors = {
+  dark: {
+    base: new THREE.Color('#011c14'),      // dark green base
+    ripple: new THREE.Color('#fbbf24'),    // warm gold ripples
+    basin: '#081c11',                      // dark green stone
+  },
+  light: {
+    base: new THREE.Color('#054525'),      // deep forest green base
+    ripple: new THREE.Color('#10b981'),    // emerald green ripples
+    basin: '#4b5563',                      // slate grey stone
+  },
+  mixed: {
+    base: new THREE.Color('#10052e'),      // twilight violet base
+    ripple: new THREE.Color('#a78bfa'),    // neon lavender ripples
+    basin: '#1c1b35',                      // twilight dark stone
+  },
+};
 
 /* ─── Water Ripple GLSL Shader ─── */
 const WaterShader = {
   uniforms: {
     uTime: { value: 0 },
     uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+    uColorBase: { value: new THREE.Color('#011c14') },
+    uColorRipple: { value: new THREE.Color('#fbbf24') },
   },
   vertexShader: `
     varying vec2 vUv;
@@ -24,6 +46,8 @@ const WaterShader = {
     varying vec2 vUv;
     uniform float uTime;
     uniform vec2 uMouse;
+    uniform vec3 uColorBase;
+    uniform vec3 uColorRipple;
 
     void main() {
       vec2 uv = vUv;
@@ -34,29 +58,32 @@ const WaterShader = {
       float ripple = sin(dist * 20.0 - uTime * 2.0) * 0.02 / (dist * 1.5 + 0.4);
       vec2 distortedUv = uv + (uv - mouse) * ripple;
 
-      // Organic pool deep green-blue gradients
-      float r = 0.02 * (0.5 + 0.5 * sin(distortedUv.x * 2.0 + uTime * 0.2));
-      float g = 0.48 * (0.5 + 0.5 * sin(distortedUv.y * 3.0 + uTime * 0.3));
-      float b = 0.42 * (0.5 + 0.5 * sin((distortedUv.x + distortedUv.y) * 2.0 + uTime * 0.15));
+      // Blend base color and ripple color
+      float factor = 0.5 + 0.5 * sin(distortedUv.x * 4.0 - uTime * 0.4);
+      vec3 finalColor = mix(uColorBase, uColorRipple, factor * 0.3);
 
       // Gentle pool glow
       float glow = 0.08 / (dist * 2.0 + 0.2);
-      g += glow * 0.2;
-      b += glow * 0.2;
+      finalColor += uColorRipple * glow * 0.4;
 
-      gl_FragColor = vec4(r, g, b, 1.0);
+      gl_FragColor = vec4(finalColor, 1.0);
     }
   `,
 };
 
-export function ShaderQuad() {
+export function ShaderQuad({ isFocus = false }: { isFocus?: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const { pointer } = useThree();
+  const { theme } = useThemeContext();
+
+  const colors = waterColors[theme] || waterColors.dark;
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+    uColorBase: { value: new THREE.Color('#011c14') },
+    uColorRipple: { value: new THREE.Color('#fbbf24') },
   }), []);
 
   useFrame((state) => {
@@ -67,12 +94,15 @@ export function ShaderQuad() {
         pointer.x * 0.5 + 0.5,
         pointer.y * 0.5 + 0.5
       );
+      // Smoothly lerp uniform colors to current theme configuration
+      materialRef.current.uniforms.uColorBase.value.lerp(colors.base, 0.1);
+      materialRef.current.uniforms.uColorRipple.value.lerp(colors.ripple, 0.1);
     }
   });
 
   return (
     <mesh ref={meshRef}>
-      <planeGeometry args={[1.7, 1.7]} />
+      <planeGeometry args={[isFocus ? 2.0 : 1.7, isFocus ? 2.0 : 1.7]} />
       <shaderMaterial
         ref={materialRef}
         attach="material"
@@ -97,6 +127,8 @@ export default function DewLeafPlant({ position, targetT, scrollProgress, onActi
   const diff = Math.abs(scrollProgress - targetT);
 
   const groupRef = useRef<THREE.Group>(null);
+  const { theme } = useThemeContext();
+  const colors = waterColors[theme] || waterColors.dark;
 
   // Proximity hysteresis check
   if (scrollProgress !== prevScroll) {
@@ -139,7 +171,7 @@ export default function DewLeafPlant({ position, targetT, scrollProgress, onActi
       {/* 3D Stone Basin Platform */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.22, 0]}>
         <cylinderGeometry args={[0.9, 0.95, 0.18, 32]} />
-        <meshStandardMaterial color="#081c11" roughness={0.8} metalness={0.15} />
+        <meshStandardMaterial color={colors.basin} roughness={0.8} metalness={0.15} />
       </mesh>
 
       {/* Refractive Water Surface Disk */}
@@ -159,10 +191,10 @@ export default function DewLeafPlant({ position, targetT, scrollProgress, onActi
             color: isNear ? 'var(--accent)' : 'var(--text-dim)',
             letterSpacing: '0.12em',
             whiteSpace: 'nowrap',
-            background: 'rgba(5, 12, 8, 0.85)',
+            background: 'var(--bg-surface)',
             padding: '4px 8px',
             borderRadius: '4px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-subtle)',
           }}
         >
           ✦ GPU Fluid Ripples

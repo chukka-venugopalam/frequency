@@ -5,12 +5,31 @@ import { motion } from 'framer-motion';
 import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useThemeContext } from '@/app/providers';
+
+// ─── Theme Colors Configuration for Growing Vine ───
+const vineThemeColors = {
+  dark: {
+    base: new THREE.Color('#04361e'), // dark forest green
+    glow: new THREE.Color('#fbbf24'), // golden amber
+  },
+  light: {
+    base: new THREE.Color('#054525'), // emerald green base
+    glow: new THREE.Color('#10b981'), // fresh green
+  },
+  mixed: {
+    base: new THREE.Color('#1a0833'), // twilight dark violet base
+    glow: new THREE.Color('#a78bfa'), // neon lavender glow
+  },
+};
 
 /* ─── Procedural Growth Vine Shader ─── */
 const GrowthShader = {
   uniforms: {
     uTime: { value: 0 },
     uGrowth: { value: 0 },
+    uColorBase: { value: new THREE.Color('#04361e') },
+    uColorGlow: { value: new THREE.Color('#fbbf24') },
   },
   vertexShader: `
     varying vec2 vUv;
@@ -27,22 +46,23 @@ const GrowthShader = {
     varying float vY;
     uniform float uTime;
     uniform float uGrowth;
+    uniform vec3 uColorBase;
+    uniform vec3 uColorGlow;
 
     void main() {
       // Discard pixels beyond the active growth frontier
-      // Normalise vY (ranges from -1.0 to 1.0) into 0.0 to 1.0
       float progress = (vY + 1.0) * 0.5;
       if (progress > uGrowth) {
         discard;
       }
 
-      // Organic stem gradient shifting from deep forest green to bright golden growth nodes
+      // Organic stem gradient shifting from base green to active growth nodes
       float gradient = smoothstep(uGrowth - 0.2, uGrowth, progress);
-      vec3 stemColor = mix(vec3(0.04, 0.22, 0.12), vec3(0.95, 0.73, 0.07), gradient);
+      vec3 stemColor = mix(uColorBase, uColorGlow, gradient);
 
       // Add a subtle electric pulse propagating along the stem
       float pulse = sin(vY * 8.0 - uTime * 3.0) * 0.5 + 0.5;
-      stemColor += vec3(0.95, 0.73, 0.07) * pulse * 0.12 * (1.0 - gradient);
+      stemColor += uColorGlow * pulse * 0.12 * (1.0 - gradient);
 
       gl_FragColor = vec4(stemColor, 1.0);
     }
@@ -52,6 +72,8 @@ const GrowthShader = {
 export function VineMesh({ isNear }: { isNear: boolean }) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const growthRef = useRef(0);
+  const { theme } = useThemeContext();
+  const colors = vineThemeColors[theme] || vineThemeColors.dark;
 
   // Define a procedural 3D spline shape winding upward
   const vineCurve = useMemo(() => {
@@ -59,11 +81,11 @@ export function VineMesh({ isNear }: { isNear: boolean }) {
     const numPoints = 8;
     for (let i = 0; i < numPoints; i++) {
       const angle = i * 1.5;
-      const radius = 0.25 * (1.0 - i / numPoints); // Tapers toward the top
+      const radius = 0.25 * (1.0 - i / numPoints);
       points.push(
         new THREE.Vector3(
           Math.sin(angle) * radius,
-          (i / (numPoints - 1)) * 2.0 - 1.0, // Vertical span from -1 to 1
+          (i / (numPoints - 1)) * 2.0 - 1.0,
           Math.cos(angle) * radius
         )
       );
@@ -71,7 +93,7 @@ export function VineMesh({ isNear }: { isNear: boolean }) {
     return new THREE.CatmullRomCurve3(points);
   }, []);
 
-  // Extrude the spline into a 3D tube geometry
+  // Extrude spline into tube
   const tubeGeom = useMemo(() => {
     return new THREE.TubeGeometry(vineCurve, 64, 0.06, 8, false);
   }, [vineCurve]);
@@ -79,16 +101,21 @@ export function VineMesh({ isNear }: { isNear: boolean }) {
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uGrowth: { value: 0 },
+    uColorBase: { value: new THREE.Color('#04361e') },
+    uColorGlow: { value: new THREE.Color('#fbbf24') },
   }), []);
 
   useFrame((state) => {
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
       
-      // Interpolate growth progress based on proximity (1.0 bloomed, 0.2 resting)
       const targetGrowth = isNear ? 1.0 : 0.2;
       growthRef.current = THREE.MathUtils.lerp(growthRef.current, targetGrowth, 0.04);
       materialRef.current.uniforms.uGrowth.value = growthRef.current;
+
+      // Dynamically update colors to match theme
+      materialRef.current.uniforms.uColorBase.value.lerp(colors.base, 0.1);
+      materialRef.current.uniforms.uColorGlow.value.lerp(colors.glow, 0.1);
     }
   });
 
@@ -157,7 +184,6 @@ export default function GrowingVinePlant({ position, targetT, scrollProgress, on
 
   return (
     <group ref={groupRef} position={position}>
-      {/* 3D Vine mesh */}
       <VineMesh isNear={isNear} />
 
       {/* Identifying label */}
@@ -172,10 +198,10 @@ export default function GrowingVinePlant({ position, targetT, scrollProgress, on
             color: isNear ? 'var(--accent)' : 'var(--text-dim)',
             letterSpacing: '0.12em',
             whiteSpace: 'nowrap',
-            background: 'rgba(5, 12, 8, 0.85)',
+            background: 'var(--bg-surface)',
             padding: '4px 8px',
             borderRadius: '4px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-subtle)',
           }}
         >
           ✦ Spline Growth Extrusion

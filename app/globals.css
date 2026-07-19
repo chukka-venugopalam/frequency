@@ -25,46 +25,48 @@
 
 /* ============================================
    THEME: Light
-   Warm off-white base, teal accent dialed back
+   Misty morning garden, warm sage-white base and fresh emerald green
    ============================================ */
 [data-theme="light"] {
-  --accent: hsl(174, 45%, 45%);
-  --accent-dim: hsl(174, 25%, 60%);
-  --accent-glow: rgba(94, 234, 212, 0.15);
-  --bg-base: #f8f6f2;
-  --bg-elevated: #f0ede8;
-  --bg-surface: #e8e4de;
-  --text-primary: #1a1a1a;
-  --text-secondary: #6b6b6b;
-  --text-dim: #a0a0a0;
+  --accent: hsl(142, 60%, 40%); /* fresh emerald green */
+  --accent-dim: hsl(142, 30%, 55%);
+  --accent-glow: rgba(16, 185, 129, 0.08);
+  --accent-secondary: hsl(200, 60%, 50%);
+  --bg-base: #f4f6f2; /* misty warm light green-gray */
+  --bg-elevated: #ebede7;
+  --bg-surface: #e0e3db;
+  --text-primary: #121e16; /* dark green-black text */
+  --text-secondary: #526257;
+  --text-dim: #8ba092;
   --card-border: rgba(0, 0, 0, 0.06);
-  --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.3));
+  --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.4));
   --body-gradient: none;
-  --border-subtle: rgba(60, 40, 20, 0.08);
+  --border-subtle: rgba(18, 30, 22, 0.08);
   --bg-subtle: rgba(0, 0, 0, 0.02);
-  --card-hover-border: rgba(94, 234, 212, 0.3);
+  --card-hover-border: rgba(16, 185, 129, 0.3);
 }
 
 /* ============================================
    THEME: Mixed (duotone / aurora hybrid)
-   Warm-dark gradient base, teal accent glow
+   Twilight enchanted garden, indigo-violet base with lavender glow
    ============================================ */
 [data-theme="mixed"] {
-  --accent: hsl(174, 55%, 55%);
-  --accent-dim: hsl(174, 30%, 50%);
-  --accent-glow: rgba(94, 234, 212, 0.1);
-  --bg-base: #19192e;
-  --bg-elevated: #22223a;
-  --bg-surface: #2a2a45;
-  --text-primary: #f0ece4;
-  --text-secondary: #a09e96;
-  --text-dim: #6b6965;
-  --card-border: rgba(255, 255, 255, 0.08);
-  --card-bg: linear-gradient(180deg, rgba(60, 50, 80, 0.15), rgba(10, 10, 30, 0.05));
-  --body-gradient: linear-gradient(180deg, #2d1b2e 0%, #19192e 40%, #19192e 100%);
+  --accent: hsl(268, 70%, 75%); /* twilight lavender-violet */
+  --accent-dim: hsl(268, 35%, 55%);
+  --accent-glow: rgba(167, 139, 250, 0.1);
+  --accent-secondary: hsl(180, 60%, 65%);
+  --bg-base: #0c0b18; /* twilight deep dark indigo */
+  --bg-elevated: #131223;
+  --bg-surface: #1a1930;
+  --text-primary: #f0ecf4;
+  --text-secondary: #908ea3;
+  --text-dim: #54526b;
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-bg: linear-gradient(180deg, rgba(30, 20, 50, 0.25), rgba(10, 10, 25, 0.08));
+  --body-gradient: linear-gradient(180deg, #180f22 0%, #0c0b18 40%, #0c0b18 100%);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --bg-subtle: rgba(255, 255, 255, 0.03);
-  --card-hover-border: rgba(94, 234, 212, 0.25);
+  --card-hover-border: rgba(167, 139, 250, 0.25);
 }
 
 @theme inline {

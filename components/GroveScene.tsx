@@ -6,9 +6,104 @@ import * as THREE from 'three';
 import DollyPath from './DollyPath';
 import SpringPhysicsSeedPod from './SpringPhysicsSeedPod';
 import FocusCircleOverlay from './FocusCircleOverlay';
+import { useThemeContext } from '@/app/providers';
 
 interface GroveSceneProps {
   scrollRef: React.RefObject<number>;
+}
+
+// ─── Theme Configurations for R3F Scene ───
+const themeColors = {
+  dark: {
+    bg: '#050c08',
+    fog: '#050c08',
+    ambient: '#143d2c',    // brighter green ambient fill to lift shadows
+    light: '#fcd34d',      // warm gold sun
+    foliage: '#021810',
+    ground: '#03140a',
+  },
+  light: {
+    bg: '#f4f6f2', // misty warm light green-gray
+    fog: '#f4f6f2',
+    ambient: '#e2e8e2',    // lighter warm sage ambient light
+    light: '#10b981',      // fresh emerald directional light
+    foliage: '#bcc5bb', // soft misty leaf green-gray
+    ground: '#ccd2c5',     // moss-tinted light ground
+  },
+  mixed: {
+    bg: '#0c0b18', // twilight deep dark indigo
+    fog: '#0c0b18',
+    ambient: '#2a1a47',    // warmer twilight purple ambient fill
+    light: '#c084fc',      // brighter twilight lavender light
+    foliage: '#0d081f', // deep twilight violet
+    ground: '#0a0915', // twilight ground
+  },
+};
+
+// ─── Procedural Foliage Silhouette Component ───
+interface FoliageClusterProps {
+  position: [number, number, number];
+  scale: number;
+  color: string;
+}
+
+function FoliageCluster({ position, scale, color }: FoliageClusterProps) {
+  // Construct a branching leaf set procedurally
+  const leaves = useMemo(() => {
+    const temp = [];
+    const count = 12;
+    for (let i = 0; i < count; i++) {
+      const t = i / (count - 1);
+      const angle = t * Math.PI * 0.8 - Math.PI * 0.4;
+      const length = 0.5 + t * 0.8;
+      temp.push({
+        x: Math.sin(angle) * length,
+        y: Math.cos(angle) * length - 0.2,
+        z: (i % 2 === 0 ? 0.05 : -0.05),
+        rotZ: -angle,
+        scaleX: 0.15 + (1 - t) * 0.2,
+        scaleY: 0.4 + (1 - t) * 0.5,
+      });
+    }
+    return temp;
+  }, []);
+
+  return (
+    <group position={position} scale={[scale, scale, scale]}>
+      {/* Central stem */}
+      <mesh position={[0, 0.4, 0]}>
+        <cylinderGeometry args={[0.015, 0.03, 1.2, 8]} />
+        {/* Use Basic material to bypass lighting calls, keeping 60fps performance */}
+        <meshBasicMaterial color={color} />
+      </mesh>
+      {/* Branch leaves */}
+      {leaves.map((leaf, idx) => (
+        <mesh
+          key={idx}
+          position={[leaf.x, leaf.y + 0.4, leaf.z]}
+          rotation={[0, 0, leaf.rotZ]}
+          scale={[leaf.scaleX, leaf.scaleY, 0.08]}
+        >
+          <sphereGeometry args={[1, 12, 12]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// ─── Textured Mossy Ground Surface ───
+function GroundPlane({ color }: { color: string }) {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.5, -6]} receiveShadow>
+      <planeGeometry args={[70, 70]} />
+      <meshStandardMaterial
+        color={color}
+        roughness={0.95}
+        metalness={0.05}
+      />
+    </mesh>
+  );
 }
 
 // Pure deterministic pseudo-random number generator to satisfy react-hooks/purity
@@ -99,6 +194,33 @@ export default function GroveScene({ scrollRef }: GroveSceneProps) {
   const seedPodDOMRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activePlant, setActivePlant] = useState<number | null>(null);
+  
+  const { theme } = useThemeContext();
+  const colors = themeColors[theme] || themeColors.dark;
+
+  // 15 Depth-layered background foliage silhouette placements
+  const foliageData = useMemo(() => [
+    // Section 1: Threshold (Z from 15 to 6)
+    { pos: [3.2, -1.6, 12] as [number, number, number], scale: 2.1 },
+    { pos: [-3.4, -1.4, 10] as [number, number, number], scale: 2.3 },
+    { pos: [3.8, 0.4, 8] as [number, number, number], scale: 1.8 },
+    { pos: [-3.8, 1.0, 6] as [number, number, number], scale: 2.2 },
+
+    // Section 2: Canopy (Z from 6 to -6)
+    { pos: [3.5, -1.8, 3] as [number, number, number], scale: 2.4 },
+    { pos: [-3.6, -1.6, 1] as [number, number, number], scale: 2.6 },
+    { pos: [4.2, 0.6, -2] as [number, number, number], scale: 2.0 },
+    { pos: [-4.2, 1.2, -4] as [number, number, number], scale: 2.5 },
+    { pos: [3.0, 1.0, -6] as [number, number, number], scale: 2.1 },
+
+    // Section 3: Clearing (Z from -6 to -27)
+    { pos: [-3.2, -1.8, -10] as [number, number, number], scale: 2.6 },
+    { pos: [3.8, -1.6, -13] as [number, number, number], scale: 2.8 },
+    { pos: [-4.4, 0.4, -16] as [number, number, number], scale: 2.3 },
+    { pos: [4.0, 0.8, -20] as [number, number, number], scale: 2.9 },
+    { pos: [-3.5, 1.4, -24] as [number, number, number], scale: 3.2 },
+    { pos: [2.2, -1.0, -27] as [number, number, number], scale: 3.5 },
+  ], []);
 
   // Manage active plant index with race-condition safe checks
   const handleActivePlantChange = (index: number, active: boolean) => {
@@ -127,24 +249,37 @@ export default function GroveScene({ scrollRef }: GroveSceneProps) {
           pointerEvents: 'none', // Enforce pointer-events: none on Canvas element
         }}
       >
-        {/* Stage 2 Ambient environment: soft deep green-black */}
-        <color attach="background" args={['#050c08']} />
+        {/* Stage 2 Ambient environment: dynamic theme color */}
+        <color attach="background" args={[colors.bg]} />
 
         {/* Soft fog to make elements recede naturally into distance */}
-        <fog attach="fog" args={['#050c08', 4, 22]} />
+        <fog attach="fog" args={[colors.fog, 4, 22]} />
 
         {/* Dense garden ambient light */}
-        <ambientLight intensity={0.3} color="#0f291e" />
+        <ambientLight intensity={0.35} color={colors.ambient} />
 
-        {/* Warm golden light filtering through trees */}
+        {/* Warm light filtering through canopy */}
         <directionalLight
           position={[12, 15, 8]}
           intensity={2.2}
-          color="#fcd34d" // Warm gold / low sun
+          color={colors.light}
         />
         
         {/* Soft fill lighting */}
-        <pointLight position={[-10, 5, -5]} intensity={0.6} color="#050c08" />
+        <pointLight position={[-10, 5, -5]} intensity={0.6} color={colors.ambient} />
+
+        {/* Procedural Ground surface */}
+        <GroundPlane color={colors.ground} />
+
+        {/* Depth-layered soft foliage backdrops */}
+        {foliageData.map((f, idx) => (
+          <FoliageCluster
+            key={idx}
+            position={f.pos}
+            scale={f.scale}
+            color={colors.foliage}
+          />
+        ))}
 
         {/* Drifting volumetric spores */}
         <AmbientParticles />
@@ -157,7 +292,7 @@ export default function GroveScene({ scrollRef }: GroveSceneProps) {
         />
       </Canvas>
 
-      {/* Sibling Seed Pod Canvas Overlay (Sibling rendering context, not nested inside the main Canvas) */}
+      {/* Sibling Seed Pod Canvas Overlay */}
       <SpringPhysicsSeedPod
         domRef={seedPodDOMRef}
         scrollProgress={scrollProgress}
@@ -169,4 +304,3 @@ export default function GroveScene({ scrollRef }: GroveSceneProps) {
     </div>
   );
 }
-

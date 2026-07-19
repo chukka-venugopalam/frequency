@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useThemeContext } from '@/app/providers';
 
 interface Particle {
   x: number;
@@ -18,6 +19,7 @@ interface Particle {
 export default function AmbientBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { theme } = useThemeContext();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -34,9 +36,19 @@ export default function AmbientBackground() {
       particles = [];
       for (let i = 0; i < particleCount; i++) {
         const baseAlpha = 0.08 + Math.random() * 0.12;
-        // 60% golden fireflies, 40% soft moss green spores
-        const isGold = Math.random() > 0.4;
-        const color = isGold ? '251, 191, 36' : '74, 222, 128';
+        
+        // Dynamic color assignment based on theme context
+        let color = '251, 191, 36'; // Dark (default gold)
+        if (theme === 'light') {
+          // fresh emerald green or soft teal
+          color = Math.random() > 0.4 ? '16, 185, 129' : '20, 184, 166';
+        } else if (theme === 'mixed') {
+          // twilight lavender or glowing cyan
+          color = Math.random() > 0.4 ? '167, 139, 250' : '34, 211, 238';
+        } else {
+          // gold or moss green
+          color = Math.random() > 0.4 ? '251, 191, 36' : '74, 222, 128';
+        }
 
         particles.push({
           x: Math.random() * width,
@@ -127,7 +139,7 @@ export default function AmbientBackground() {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [theme]);
 
   return (
     <div
@@ -139,7 +151,7 @@ export default function AmbientBackground() {
         zIndex: 0,
         pointerEvents: 'none',
         overflow: 'hidden',
-        background: 'radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(251, 191, 36, 0.045) 0%, rgba(5, 12, 8, 0.5) 55%, transparent 100%)',
+        background: 'radial-gradient(circle at var(--glow-x, 50%) var(--glow-y, 50%), var(--accent-glow) 0%, var(--bg-base) 55%, transparent 100%)',
       }}
     >
       <canvas

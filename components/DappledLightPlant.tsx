@@ -5,12 +5,31 @@ import { motion } from 'framer-motion';
 import { Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useThemeContext } from '@/app/providers';
+
+// ─── Theme Colors Configuration for Dappled Shadows ───
+const dappleThemeColors = {
+  dark: {
+    light: new THREE.Color('#fcd34d'),   // warm gold light
+    shadow: new THREE.Color('#02140a'),  // deep green shadows
+  },
+  light: {
+    light: new THREE.Color('#10b981'),   // fresh green light
+    shadow: new THREE.Color('#e2e5dc'),  // light sage shadows
+  },
+  mixed: {
+    light: new THREE.Color('#c084fc'),   // lavender light
+    shadow: new THREE.Color('#0a0815'),  // deep violet shadows
+  },
+};
 
 /* ─── Dappled Foliage Shadow Projection Shader ─── */
 const DappledShader = {
   uniforms: {
     uTime: { value: 0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
+    uColorLight: { value: new THREE.Color('#fcd34d') },
+    uColorShadow: { value: new THREE.Color('#02140a') },
   },
   vertexShader: `
     varying vec2 vUv;
@@ -27,6 +46,8 @@ const DappledShader = {
     varying vec3 vNormal;
     uniform float uTime;
     uniform vec2 uMouse;
+    uniform vec3 uColorLight;
+    uniform vec3 uColorShadow;
 
     // Simulates natural organic leaves shadow masks
     float leafNoise(vec2 p, float time) {
@@ -38,21 +59,14 @@ const DappledShader = {
 
     void main() {
       vec2 uv = vUv;
-      
-      // Dynamic shift relative to screen mouse position
       uv += uMouse * 0.08;
 
       float shadowMask = leafNoise(uv * 1.8, uTime);
-      // Map noise into a clean sharp dappled shadow edge
       float shadow = smoothstep(-0.25, 0.45, shadowMask);
-
-      // Warm ambient leaf backlight color palette
-      vec3 lightColor = vec3(0.96, 0.78, 0.15); // Warm gold sunray
-      vec3 shadowColor = vec3(0.02, 0.08, 0.04); // Deep green foliage shade
 
       // Direct light diffusion scaling relative to surface normal
       float diffuse = max(dot(vNormal, normalize(vec3(3.0, 3.0, 3.0))), 0.0);
-      vec3 finalColor = mix(shadowColor, lightColor * (diffuse + 0.3), shadow);
+      vec3 finalColor = mix(uColorShadow, uColorLight * (diffuse + 0.3), shadow);
 
       gl_FragColor = vec4(finalColor, 1.0);
     }
@@ -62,17 +76,24 @@ const DappledShader = {
 export function DappleSphere() {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const { pointer } = useThree();
+  const { theme } = useThemeContext();
+  const colors = dappleThemeColors[theme] || dappleThemeColors.dark;
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
+    uColorLight: { value: new THREE.Color('#fcd34d') },
+    uColorShadow: { value: new THREE.Color('#02140a') },
   }), []);
 
   useFrame((state) => {
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
-      // Lerp mouse coordinates to smooth shadow movement
       materialRef.current.uniforms.uMouse.value.lerp(pointer, 0.08);
+
+      // Dynamically update colors to match theme
+      materialRef.current.uniforms.uColorLight.value.lerp(colors.light, 0.1);
+      materialRef.current.uniforms.uColorShadow.value.lerp(colors.shadow, 0.1);
     }
   });
 
@@ -142,7 +163,6 @@ export default function DappledLightPlant({ position, targetT, scrollProgress, o
 
   return (
     <group ref={groupRef} position={position}>
-      {/* 3D Dapple Sphere mesh */}
       <DappleSphere />
 
       {/* Identifying label */}
@@ -157,10 +177,10 @@ export default function DappledLightPlant({ position, targetT, scrollProgress, o
             color: isNear ? 'var(--accent)' : 'var(--text-dim)',
             letterSpacing: '0.12em',
             whiteSpace: 'nowrap',
-            background: 'rgba(5, 12, 8, 0.85)',
+            background: 'var(--bg-surface)',
             padding: '4px 8px',
             borderRadius: '4px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-subtle)',
           }}
         >
           ✦ Dappled Leaf Shadows

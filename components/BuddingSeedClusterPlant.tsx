@@ -5,11 +5,42 @@ import { motion } from 'framer-motion';
 import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useThemeContext } from '@/app/providers';
+
+// ─── Theme Colors Configuration for Crystal Cluster ───
+const clusterThemeColors = {
+  dark: {
+    crystal: '#d97706',       // golden amber
+    crystalEm: '#b45309',
+    capsuleL: '#3b82f6',       // blue
+    capsuleR: '#a855f7',       // purple
+    spore: '#6d28d9',          // indigo
+    sporeEm: '#4c1d95',
+  },
+  light: {
+    crystal: '#059669',       // emerald green
+    crystalEm: '#047857',
+    capsuleL: '#10b981',       // emerald
+    capsuleR: '#34d399',       // green-teal
+    spore: '#047857',          // deep emerald
+    sporeEm: '#022c22',
+  },
+  mixed: {
+    crystal: '#8b5cf6',       // lavender
+    crystalEm: '#6d28d9',
+    capsuleL: '#ec4899',       // pink
+    capsuleR: '#c084fc',       // violet
+    spore: '#db2777',          // hot magenta
+    sporeEm: '#9d174d',
+  },
+};
 
 // ─── 1. Crystal Seed-Pod (Rotate + Breathe) ───
 export function CrystalSeed() {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
+  const { theme } = useThemeContext();
+  const colors = clusterThemeColors[theme] || clusterThemeColors.dark;
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -25,10 +56,10 @@ export function CrystalSeed() {
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      <icosahedronGeometry args={[0.38, 0]} />
+      <icosahedronGeometry args={[0.32, 0]} />
       <meshStandardMaterial
-        color={hovered ? '#f59e0b' : '#d97706'} // Warm golden transition
-        emissive={hovered ? '#fbbf24' : '#b45309'}
+        color={hovered ? '#fbbf24' : colors.crystal}
+        emissive={hovered ? '#fbbf24' : colors.crystalEm}
         emissiveIntensity={1.2}
         roughness={0.1}
         metalness={0.9}
@@ -41,18 +72,18 @@ export function CrystalSeed() {
 export function DividingCapsule() {
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
+  const { theme } = useThemeContext();
+  const colors = clusterThemeColors[theme] || clusterThemeColors.dark;
 
   useFrame((state) => {
     if (!groupRef.current) return;
     groupRef.current.rotation.y = state.clock.elapsedTime * -0.25;
 
-    // Fracture displacement offset
     const time = state.clock.elapsedTime;
     const splitOffset = hovered
-      ? 0.5 + Math.sin(time * 6.0) * 0.05 // Fidget fracture
-      : 0.15 + Math.sin(time * 1.5) * 0.1; // Slow breathing fracture
+      ? 0.4 + Math.sin(time * 6.0) * 0.04 // Fidget split
+      : 0.15 + Math.sin(time * 1.5) * 0.08; // Slow split
 
-    // Apply offset to left and right halves
     const left = groupRef.current.children[0] as THREE.Mesh;
     const right = groupRef.current.children[1] as THREE.Mesh;
     if (left && right) {
@@ -67,22 +98,22 @@ export function DividingCapsule() {
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      {/* Left Capsule half */}
+      {/* Left half */}
       <mesh position={[-0.2, 0, 0]}>
-        <sphereGeometry args={[0.22, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <sphereGeometry args={[0.2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshPhysicalMaterial
-          color="#3b82f6"
+          color={colors.capsuleL}
           roughness={0.2}
           metalness={0.1}
           transmission={0.6}
           thickness={0.5}
         />
       </mesh>
-      {/* Right Capsule half */}
+      {/* Right half */}
       <mesh position={[0.2, 0, 0]} rotation={[0, 0, Math.PI]}>
-        <sphereGeometry args={[0.22, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <sphereGeometry args={[0.2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshPhysicalMaterial
-          color="#a855f7"
+          color={colors.capsuleR}
           roughness={0.2}
           metalness={0.1}
           transmission={0.6}
@@ -93,11 +124,13 @@ export function DividingCapsule() {
   );
 }
 
-// ─── 3. Orbiting Spore (Orbit companion) ───
+// ─── 3. Orbiting Spore (Companion) ───
 export function OrbitingSpore() {
   const groupRef = useRef<THREE.Group>(null);
   const satelliteRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
+  const { theme } = useThemeContext();
+  const colors = clusterThemeColors[theme] || clusterThemeColors.dark;
 
   useFrame((state) => {
     if (groupRef.current) {
@@ -116,12 +149,12 @@ export function OrbitingSpore() {
     >
       <mesh
         ref={satelliteRef}
-        position={[0.7, 0, 0]}
+        position={[0.5, 0, 0]}
       >
         <octahedronGeometry args={[0.08, 0]} />
         <meshStandardMaterial
-          color={hovered ? '#a78bfa' : '#6d28d9'}
-          emissive={hovered ? '#c084fc' : '#4c1d95'}
+          color={hovered ? '#a78bfa' : colors.spore}
+          emissive={hovered ? '#c084fc' : colors.sporeEm}
           emissiveIntensity={1.5}
           roughness={0.2}
           metalness={0.8}
@@ -170,7 +203,7 @@ export default function BuddingSeedClusterPlant({ position, targetT, scrollProgr
     if (!groupRef.current) return;
     const time = state.clock.elapsedTime;
     const breatheScale = 1.0 + Math.sin(time * 0.4) * 0.02;
-    const breatheRotate = Math.sin(time * 0.3) * 0.02;
+    const breatheRotate = Math.sin(time * 0.3) * 0.015;
 
     const targetScale = isNear ? 1.25 : 0.8;
     const currentScale = groupRef.current.scale.x;
@@ -183,9 +216,18 @@ export default function BuddingSeedClusterPlant({ position, targetT, scrollProgr
 
   return (
     <group ref={groupRef} position={position}>
-      <CrystalSeed />
-      <DividingCapsule />
-      <OrbitingSpore />
+      {/* Space components in a triangular layout to prevent overlapping (fixes Bug 4) */}
+      <group position={[-0.5, 0.3, 0]}>
+        <CrystalSeed />
+      </group>
+      
+      <group position={[0.5, 0.3, 0]}>
+        <DividingCapsule />
+      </group>
+      
+      <group position={[0, -0.5, 0]}>
+        <OrbitingSpore />
+      </group>
 
       {/* Identifying label */}
       <Html position={[0, -0.65, 0]} center distanceFactor={5} style={{ pointerEvents: 'none', userSelect: 'none' }}>
@@ -199,10 +241,10 @@ export default function BuddingSeedClusterPlant({ position, targetT, scrollProgr
             color: isNear ? 'var(--accent)' : 'var(--text-dim)',
             letterSpacing: '0.12em',
             whiteSpace: 'nowrap',
-            background: 'rgba(5, 12, 8, 0.85)',
+            background: 'var(--bg-surface)',
             padding: '4px 8px',
             borderRadius: '4px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-subtle)',
           }}
         >
           ✦ 3D Crystal Cluster
